@@ -1,0 +1,20 @@
+Set up this Neon project in the current working directory.
+
+1. `npm i -g neon@latest && neon login`
+2. `neon skills -y`
+3. `neon mcp -y`
+4. `neon link --project-id red-union-21114285 --branch production -y`
+5. `neon config init`
+6. Update `neon.ts`:
+
+```ts
+import { defineConfig } from "@neon/config/v1";
+
+export default defineConfig({});
+```
+
+7. `neon deploy`
+
+
+
+postgresql://smart_pillow_owner:npg_A6NTp3qXcyns@ep-purple-cake-b3ut1yro-pooler.c-4.ap-southeast-1.aws.neon.tech/smart_pillow?sslmode=require&channel_binding=require
