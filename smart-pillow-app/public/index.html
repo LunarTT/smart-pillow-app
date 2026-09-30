@@ -883,17 +883,16 @@
             }
         }
 
-        // ฟังก์ชันส่งข้อมูลสมัครสมาชิกไปยัง Backend API
         async function handleRegister() {
             const username = document.getElementById('regUsername').value.trim();
             const email = document.getElementById('regEmail').value.trim();
             const password = document.getElementById('regPassword').value.trim();
-
+        
             if (!username || !email || !password) {
                 alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
                 return;
             }
-
+        
             try {
                 const res = await fetch(`${API_URL}/auth/register`, {
                     method: 'POST',
@@ -901,25 +900,23 @@
                     body: JSON.stringify({ username, email, password })
                 });
                 const data = await res.json();
-
+        
                 if (data.success) {
                     alert(data.message || 'สมัครสมาชิกสำเร็จ!');
-                    // เคลียร์ช่องป้อนข้อมูล แล้วสลับกลับไปหน้าเข้าสู่ระบบ
                     document.getElementById('regUsername').value = '';
                     document.getElementById('regEmail').value = '';
                     document.getElementById('regPassword').value = '';
                     
-                    // นำอีเมลไปกรอกในฟอร์ม Login ให้อัตโนมัติเพื่อความสะดวก
                     document.getElementById('loginEmail').value = email;
                     toggleAuthMode('login');
                 } else {
-                    alert('สมัครสมาชิกไม่สำเร็จ: ' + data.message);
+                    // ดึงค่า error หรือ message ออกมาแสดง
+                    alert('สมัครสมาชิกไม่สำเร็จ: ' + (data.message || data.error || 'เกิดข้อผิดพลาดในการสมัคร'));
                 }
             } catch (err) {
                 alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
             }
         }
-
 
         // --- Fetch Snore History (Real Data) ---
         async function fetchSnoreEvents() {
