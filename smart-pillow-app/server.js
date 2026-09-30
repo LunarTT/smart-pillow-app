@@ -21,13 +21,10 @@ app.get('/', (req, res) => {
 // คีย์ลับสำหรับสร้าง JWT Token
 const JWT_SECRET = 'my_super_secret_key_123';
 
-// --- 1. เชื่อมต่อฐานข้อมูล PostgreSQL ---
+// ตรวจสอบการเชื่อมต่อ PostgreSQL บน Cloud (Neon)
 const pool = new Pool({
-  user: 'postgres',          // Username ของ PostgreSQL
-  host: 'localhost',         // IP ของ Database Server
-  database: 'smart_pillow',   // ชื่อฐานข้อมูล
-  password: 'as12301230',    // รหัสผ่านของคุณ
-  port: 5432,
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
 // --- 2. เชื่อมต่อ MQTT Broker ---
@@ -139,10 +136,7 @@ app.post('/api/auth/register', async (req, res) => {
   }
 
   try {
-    // 1. เข้ารหัสรหัสผ่านก่อนเก็บลงฐานข้อมูล
     const hashedPassword = await bcrypt.hash(password, 10);
-
-    // 2. บันทึกลงตาราง users
     const result = await pool.query(
       'INSERT INTO users (username, email, password_hash) VALUES ($1, $2, $3) RETURNING id, username, email',
       [username, email, hashedPassword]
@@ -150,12 +144,15 @@ app.post('/api/auth/register', async (req, res) => {
 
     res.json({ 
       success: true, 
-      message: 'สมัครสมาชิกสำเร็จ! กรุณาเข้าสู่ระบบ',
+      message: 'สมัครสมาชิกสำเร็จ!',
       user: result.rows[0] 
     });
   } catch (err) {
-    // หาก Email หรือ Username ซ้ำในระบบ
-    res.status(400).json({ success: false, message: 'อีเมลหรือชื่อผู้ใช้นี้มีในระบบแล้ว' });
+    console.error('Register Error:', err);
+    res.status(400).json({ 
+      success: false, 
+      message: err.code === '23505' ? 'อีเมลหรือชื่อผู้ใช้นี้มีในระบบแล้ว' : 'ไม่สามารถบันทึกข้อมูลลงฐานข้อมูลได้' 
+    });
   }
 });
 
