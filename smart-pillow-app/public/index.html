@@ -11,6 +11,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- WaveSurfer.js สำหรับเล่นเสียงและแสดง Waveform จริง -->
     <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
+    <!-- แท็กเรียกใช้ Socket.io Client -->
+    <script src="/socket.io/socket.io.js"></script>
     
     <style>
         :root {
@@ -1246,6 +1248,29 @@
                 }
             }
         }
+
+        // สคริปต์เชื่อมต่อ Socket.io
+        const socket = io();
+
+        socket.on('realtime_sensor_update', (data) => {
+            // ตรวจสอบว่าเป็นข้อมูลของหมอนอันที่เราใช้อยู่หรือไม่
+            const currentDevId = getCurrentDeviceId();
+            if (data.device_id && data.device_id !== currentDevId) return;
+
+            // อัปเดตอุณหภูมิและความชื้นแบบทันทีทันใด
+            if (data.temperature !== undefined) {
+                document.getElementById('tempValue').innerText = `${data.temperature} °C`;
+            }
+            if (data.humidity !== undefined) {
+                document.getElementById('humidValue').innerText = `${data.humidity} %`;
+            }
+
+            // หากมีการกรนเกิดขึ้น ให้สั่งรีเฟรชกราฟและประวัติอัตโนมัติ
+            if (data.snore_prob !== undefined) {
+                fetchDashboardSummary();
+                fetchSnoreEvents();
+            }
+        });
     </script>
 </body>
 </html>
