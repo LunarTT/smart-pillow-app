@@ -95,6 +95,15 @@
         .tab-content { display: none; padding: 16px; flex-direction: column; gap: 16px; }
         .tab-content.active { display: flex; }
 
+        /* Device Card */
+        .device-card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
         /* Carousel Card */
         .carousel-card {
             background: var(--carousel-bg); border-radius: 20px;
@@ -467,35 +476,35 @@
 
         <!-- TAB 1: HOME -->
         <div class="tab-content active" id="tab-home">
+            <!-- Card ข้อมูลอุปกรณ์ ESP32 และการจับคู่หมอน (อยู่นอก Carousel) -->
+            <div class="device-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 0.95rem; color: var(--text-secondary);">📱 หมอนอัจฉริยะที่เชื่อมต่อ</h3>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
+                            <span id="displayDeviceId" style="font-size: 1.3rem; font-weight: bold; color: #38bdf8;">pillow-001</span>
+                            <span id="deviceStatusBadge" style="background: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; border: 1px solid rgba(34, 197, 94, 0.3);">● Online</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr style="border-color: var(--border-color); margin: 12px 0;">
+                
+                <!-- ฟอร์มเปลี่ยน / จับคู่รหัสหมอนใหม่ -->
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="text" id="pairDeviceIdInput" placeholder="กรอกรหัสหมอน เช่น pillow-002" 
+                           style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-subcard); color: var(--text-primary); font-size: 0.8rem; outline: none;">
+                    <button onclick="handlePairDevice()" 
+                            style="padding: 8px 14px; border-radius: 8px; border: none; background: #0284c7; color: #fff; font-weight: 500; cursor: pointer; font-size: 0.8rem;">
+                        ผูกหมอนใหม่
+                    </button>
+                </div>
+            </div>
+
             <div class="carousel-card">
                 <button class="carousel-nav-btn prev-btn" onclick="moveCarousel(-1)"><i class="fa-solid fa-chevron-left"></i></button>
                 <button class="carousel-nav-btn next-btn" onclick="moveCarousel(1)"><i class="fa-solid fa-chevron-right"></i></button>
 
-                <!-- Card ข้อมูลอุปกรณ์ ESP32 และการจับคู่หมอน -->
-                <div class="device-card" style="background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; color: #fff;">
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                      <h3 style="margin: 0; font-size: 1.1rem; color: #94a3b8;">📱 หมอนอัจฉริยะที่เชื่อมต่อ</h3>
-                      <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
-                        <span id="displayDeviceId" style="font-size: 1.5rem; font-weight: bold; color: #38bdf8;">pillow-001</span>
-                        <span id="deviceStatusBadge" style="background: #22c55e; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 0.8rem;">● Online</span>
-                      </div>
-                    </div>
-                  </div>
-                
-                  <hr style="border-color: #334155; margin: 15px 0;">
-                
-                  <!-- ฟอร์มเปลี่ยน / จับคู่รหัสหมอนใหม่ -->
-                  <div style="display: flex; gap: 10px; align-items: center;">
-                    <input type="text" id="pairDeviceIdInput" placeholder="กรอกรหัสหมอน เช่น pillow-002" 
-                           style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #fff;">
-                    <button onclick="handlePairDevice()" 
-                            style="padding: 10px 18px; border-radius: 8px; border: none; background: #0284c7; color: #fff; font-weight: bold; cursor: pointer;">
-                      ผูกหมอนใหม่
-                    </button>
-                  </div>
-                </div>
-                
                 <div class="carousel-page active">
                     <div class="score-title">
                         คะแนนการนอนหลับเมื่อคืน
@@ -571,7 +580,7 @@
                     <small>พองถุงลมอัตโนมัติเมื่อตรวจพบเสียงกรน</small>
                 </div>
                 <label class="switch">
-                    <input type="checkbox" checked onchange="toggleAutoMode(this)">
+                    <input type="checkbox" id="autoModeToggle" checked onchange="toggleAutoMode(this)">
                     <span class="slider"></span>
                 </label>
             </div>
@@ -626,7 +635,7 @@
         <div class="tab-content" id="tab-history">
             <div class="history-date-picker">
                 <label><i class="fa-solid fa-calendar-days"></i> เลือกวันที่ดูประวัติ</label>
-                <input type="date" id="historyDate" value="2026-09-15" onchange="fetchSnoreEvents()">
+                <input type="date" id="historyDate" onchange="fetchSnoreEvents()">
             </div>
 
             <div class="history-summary-grid">
@@ -655,7 +664,7 @@
                     <span><i class="fa-solid fa-list-ul"></i> ประวัติการกรนรายครั้ง</span>
                     <small style="color: #38bdf8;">ฟังเสียงจริง WaveSurfer</small>
                 </div>
-                <div class="log-list">
+                <div class="log-list" id="snoreLogList">
                     <!-- โหลดรายการจาก Database -->
                 </div>
             </div>
@@ -753,9 +762,32 @@
         const API_URL = window.location.origin.includes('localhost') 
           ? 'http://localhost:5000/api' 
           : `${window.location.origin}/api`;
-        let userToken = localStorage.getItem('pillow_token');
+        
+        let userToken = localStorage.getItem('pillow_token') || '';
         let wavesurfer = null;
         let snoreChart = null;
+
+        // --- Helper: Get Current User Device ID ---
+        function getCurrentDeviceId() {
+            const userData = JSON.parse(localStorage.getItem('pillow_user') || '{}');
+            return userData.device_id || 'pillow-001';
+        }
+
+        // --- Initial Start ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initChart();
+            // ตั้งค่าวันที่ปัจจุบันลงใน History Date Picker
+            const todayStr = new Date().toISOString().split('T')[0];
+            const historyDateInput = document.getElementById('historyDate');
+            if (historyDateInput) historyDateInput.value = todayStr;
+
+            if (userToken) {
+                document.getElementById('loginModalOverlay').style.display = 'none';
+                loadDeviceInfo();
+                fetchDashboardSummary();
+                fetchSnoreEvents();
+            }
+        });
 
         // --- Navigation Tabs & Theme ---
         function switchTab(tabName, navElement) {
@@ -769,6 +801,122 @@
             document.body.classList.toggle('light-mode');
             const icon = document.getElementById('themeIcon');
             icon.className = document.body.classList.contains('light-mode') ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+        }
+
+        // --- Auth Mode Switching ---
+        function toggleAuthMode(mode) {
+            document.getElementById('loginForm').style.display = mode === 'register' ? 'none' : 'block';
+            document.getElementById('registerForm').style.display = mode === 'register' ? 'block' : 'none';
+        }
+
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value.trim();
+
+            if (!email || !password) return alert('กรุณากรอกอีเมลและรหัสผ่าน');
+
+            try {
+                const res = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    userToken = data.token;
+                    localStorage.setItem('pillow_token', userToken);
+                    if (data.user) {
+                        localStorage.setItem('pillow_user', JSON.stringify(data.user));
+                    }
+                    document.getElementById('loginModalOverlay').style.display = 'none';
+                    loadDeviceInfo();
+                    fetchDashboardSummary();
+                    fetchSnoreEvents();
+                } else {
+                    alert('เข้าสู่ระบบไม่สำเร็จ: ' + (data.message || data.error));
+                }
+            } catch (err) {
+                alert('ไม่สามารถเชื่อมต่อ Server Backend ได้');
+            }
+        }
+
+        async function handleRegister() {
+            const username = document.getElementById('regUsername').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value.trim();
+        
+            if (!username || !email || !password) return alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
+        
+            try {
+                const res = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+                const data = await res.json();
+        
+                if (data.success) {
+                    alert(data.message || 'สมัครสมาชิกสำเร็จ!');
+                    document.getElementById('regUsername').value = '';
+                    document.getElementById('regEmail').value = '';
+                    document.getElementById('regPassword').value = '';
+                    
+                    document.getElementById('loginEmail').value = email;
+                    toggleAuthMode('login');
+                } else {
+                    alert('สมัครสมาชิกไม่สำเร็จ: ' + (data.message || data.error || 'เกิดข้อผิดพลาดในการสมัคร'));
+                }
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('pillow_token');
+            localStorage.removeItem('pillow_user');
+            location.reload();
+        }
+
+        // --- Device Pairing ---
+        function loadDeviceInfo() {
+            const currentDevId = getCurrentDeviceId();
+            const displayElem = document.getElementById('displayDeviceId');
+            if (displayElem) displayElem.innerText = currentDevId;
+        }
+
+        async function handlePairDevice() {
+            const newDeviceId = document.getElementById('pairDeviceIdInput').value.trim();
+            if (!newDeviceId) return alert('กรุณากรอกรหัสหมอนที่ต้องการผูก');
+
+            try {
+                const res = await fetch(`${API_URL}/user/pair-device`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify({ device_id: newDeviceId })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    alert(data.message || 'ผูกอุปกรณ์เรียบร้อยแล้ว');
+                    document.getElementById('displayDeviceId').innerText = newDeviceId;
+                    document.getElementById('pairDeviceIdInput').value = '';
+
+                    const userData = JSON.parse(localStorage.getItem('pillow_user') || '{}');
+                    userData.device_id = newDeviceId;
+                    localStorage.setItem('pillow_user', JSON.stringify(userData));
+
+                    fetchDashboardSummary();
+                    fetchSnoreEvents();
+                } else {
+                    alert('ไม่สามารถผูกหมอนได้: ' + (data.message || data.error));
+                }
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+            }
         }
 
         // --- Carousel Logic ---
@@ -815,63 +963,7 @@
             });
         }
 
-        // --- WaveSurfer.js Real Audio Player ---
-        function initWaveSurfer() {
-            if (!wavesurfer) {
-                wavesurfer = WaveSurfer.create({
-                    container: '#waveformContainer',
-                    waveColor: '#475569',
-                    progressColor: '#ef4444',
-                    cursorColor: '#ef4444',
-                    barWidth: 2,
-                    height: 90
-                });
-
-                wavesurfer.on('audioprocess', () => {
-                    const time = wavesurfer.getCurrentTime();
-                    const mins = Math.floor(time / 60).toString().padStart(2, '0');
-                    const secs = Math.floor(time % 60).toString().padStart(2, '0');
-                    const ms = Math.floor((time % 1) * 100).toString().padStart(2, '0');
-                    document.getElementById('timerDisplay').innerText = `${mins}:${secs}.${ms}`;
-                });
-
-                wavesurfer.on('finish', () => {
-                    document.getElementById('playIcon').className = 'fa-solid fa-play';
-                });
-            }
-        }
-
-        function openAudioModal(time, infoText, audioUrl) {
-            document.getElementById('modalSubTitle').innerText = `${time} น. • ${infoText}`;
-            document.getElementById('audioModal').style.display = 'flex';
-            
-            initWaveSurfer();
-            // โหลดไฟล์เสียงจริงจาก URL หรือใช้ไฟล์ Demo
-            const fullAudioUrl = audioUrl ? `http://localhost:5000${audioUrl}` : 'http://localhost:5000/uploads/demo.mp3';
-            wavesurfer.load(fullAudioUrl);
-        }
-
-        function togglePlayAudio() {
-            if (wavesurfer) {
-                wavesurfer.playPause();
-                const isPlaying = wavesurfer.isPlaying();
-                document.getElementById('playIcon').className = isPlaying ? 'fa-solid fa-pause' : 'fa-solid fa-play';
-            }
-        }
-
-        function seekAudio(seconds) {
-            if (wavesurfer) {
-                const currentTime = wavesurfer.getCurrentTime();
-                wavesurfer.setTime(currentTime + seconds);
-            }
-        }
-
-        function closeAudioModal() {
-            if (wavesurfer) wavesurfer.stop();
-            document.getElementById('audioModal').style.display = 'none';
-        }
-
-        // --- Fetch Dashboard Summary (Real Data) ---
+        // --- Fetch Dashboard Summary ---
         async function fetchDashboardSummary() {
             try {
                 const res = await fetch(`${API_URL}/dashboard/summary`, {
@@ -880,14 +972,27 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    document.getElementById('sleepScoreValue').innerText = data.sleepScore;
-                    document.getElementById('sleepScoreDesc').innerText = data.sleepScore >= 80 ? "คุณภาพการนอนอยู่ในเกณฑ์ดีมาก" : "พบสถิติการกรนรบกวนการนอน";
-                    document.getElementById('tempValue').innerText = `${data.temp} °C`;
-                    document.getElementById('humidValue').innerText = `${data.humid} %`;
+                    const scoreElem = document.getElementById('sleepScoreValue');
+                    const descElem = document.getElementById('sleepScoreDesc');
+                    if (data.sleepScore !== null && data.sleepScore !== undefined) {
+                        scoreElem.innerText = data.sleepScore;
+                        descElem.innerText = data.sleepScore >= 80 ? "คุณภาพการนอนอยู่ในเกณฑ์ดีมาก" : "พบสถิติการกรนรบกวนการนอน";
+                    } else {
+                        scoreElem.innerText = '--';
+                        descElem.innerText = 'ยังไม่มีข้อมูลการนอนหลับ';
+                    }
+
+                    document.getElementById('tempValue').innerText = (data.temp !== null && data.temp !== undefined) ? `${data.temp} °C` : '-- °C';
+                    document.getElementById('humidValue').innerText = (data.humid !== null && data.humid !== undefined) ? `${data.humid} %` : '-- %';
 
                     if (snoreChart) {
-                        snoreChart.data.labels = data.chartLabels;
-                        snoreChart.data.datasets[0].data = data.chartData;
+                        if (data.chartData && data.chartData.length > 0) {
+                            snoreChart.data.labels = data.chartLabels || [];
+                            snoreChart.data.datasets[0].data = data.chartData;
+                        } else {
+                            snoreChart.data.labels = ['ไม่มีข้อมูล'];
+                            snoreChart.data.datasets[0].data = [0];
+                        }
                         snoreChart.update();
                     }
                 }
@@ -895,72 +1000,21 @@
                 console.error('Error fetching dashboard summary:', err);
             }
         }
-        
 
-        // ฟังก์ชันสลับระหว่างหน้า Login และ Register
-        function toggleAuthMode(mode) {
-            if (mode === 'register') {
-                document.getElementById('loginForm').style.display = 'none';
-                document.getElementById('registerForm').style.display = 'block';
-            } else {
-                document.getElementById('loginForm').style.display = 'block';
-                document.getElementById('registerForm').style.display = 'none';
-            }
-        }
-
-        async function handleRegister() {
-            const username = document.getElementById('regUsername').value.trim();
-            const email = document.getElementById('regEmail').value.trim();
-            const password = document.getElementById('regPassword').value.trim();
-        
-            if (!username || !email || !password) {
-                alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
-                return;
-            }
-        
-            try {
-                const res = await fetch(`${API_URL}/auth/register`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, email, password })
-                });
-                const data = await res.json();
-        
-                if (data.success) {
-                    alert(data.message || 'สมัครสมาชิกสำเร็จ!');
-                    document.getElementById('regUsername').value = '';
-                    document.getElementById('regEmail').value = '';
-                    document.getElementById('regPassword').value = '';
-                    
-                    document.getElementById('loginEmail').value = email;
-                    toggleAuthMode('login');
-                } else {
-                    // ดึงค่า error หรือ message ออกมาแสดง
-                    alert('สมัครสมาชิกไม่สำเร็จ: ' + (data.message || data.error || 'เกิดข้อผิดพลาดในการสมัคร'));
-                }
-            } catch (err) {
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
-            }
-        }
-
-        // --- Fetch Snore History (Real Data) ---
+        // --- Fetch Snore History ---
         async function fetchSnoreEvents() {
             try {
-                const res = await fetch(`${API_URL}/snore-events`, {
+                const selectedDate = document.getElementById('historyDate').value;
+                const query = selectedDate ? `?date=${selectedDate}` : '';
+                const res = await fetch(`${API_URL}/snore-events${query}`, {
                     headers: { 'Authorization': `Bearer ${userToken}` }
                 });
                 const data = await res.json();
 
-                if (data.success) {
-                    const logContainer = document.querySelector('.log-list');
-                    logContainer.innerHTML = '';
+                const logContainer = document.getElementById('snoreLogList');
+                logContainer.innerHTML = '';
 
-                    if (data.data.length === 0) {
-                        logContainer.innerHTML = '<p style="text-align:center; font-size:0.8rem; color: var(--text-secondary); padding: 10px;">ไม่มีประวัติการกรน</p>';
-                        document.getElementById('histSnoreCount').innerText = '0 ครั้ง';
-                        return;
-                    }
-
+                if (data.success && data.data && data.data.length > 0) {
                     data.data.forEach((item, index) => {
                         const timeStr = new Date(item.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
                         const logHTML = `
@@ -976,106 +1030,17 @@
                         `;
                         logContainer.innerHTML += logHTML;
                     });
-
                     document.getElementById('histSnoreCount').innerText = `${data.data.length} ครั้ง`;
+                } else {
+                    logContainer.innerHTML = '<p style="text-align:center; font-size:0.8rem; color: var(--text-secondary); padding: 10px;">ไม่มีประวัติการกรนสำหรับวันที่เลือก</p>';
+                    document.getElementById('histSnoreCount').innerText = '0 ครั้ง';
                 }
             } catch (err) {
                 console.error('Failed to fetch snore events:', err);
             }
         }
 
-        // --- CSV Export & Data Reset ---
-        async function exportData() {
-            try {
-                const res = await fetch(`${API_URL}/snore-events`, {
-                    headers: { 'Authorization': `Bearer ${userToken}` }
-                });
-                const data = await res.json();
-
-                if (!data.success || data.data.length === 0) {
-                    alert("ไม่พบข้อมูลประวัติการนอนสำหรับส่งออก");
-                    return;
-                }
-
-                let csvContent = "data:text/csv;charset=utf-8,\uFEFFID,Device ID,Time,Snore Prob (%),Is Inflated\n";
-                data.data.forEach(row => {
-                    const timeStr = new Date(row.created_at).toLocaleString('th-TH');
-                    csvContent += `${row.id},${row.device_id},${timeStr},${row.snore_prob},${row.is_inflated ? 'Yes' : 'No'}\n`;
-                });
-
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement("a");
-                link.setAttribute("href", encodedUri);
-                link.setAttribute("download", `snore_report_${new Date().toISOString().slice(0,10)}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            } catch (err) {
-                alert("เกิดข้อผิดพลาดในการส่งออกรายงาน");
-            }
-        }
-
-        async function resetData() {
-            if (confirm("คุณแน่ใจหรือไม่ว่าต้องการล้างประวัติการนอนทั้งหมด? ข้อมูลนี้จะไม่สามารถคืนค่าได้")) {
-                try {
-                    const res = await fetch(`${API_URL}/snore-events`, {
-                        method: 'DELETE',
-                        headers: { 'Authorization': `Bearer ${userToken}` }
-                    });
-                    const data = await res.json();
-
-                    if (data.success) {
-                        alert(data.message);
-                        fetchSnoreEvents();
-                        fetchDashboardSummary();
-                    }
-                } catch (err) {
-                    alert("ไม่สามารถลบข้อมูลได้ เกิดข้อผิดพลาดในการเชื่อมต่อ");
-                }
-            }
-        }
-
-        // --- User Auth & App Startup ---
-        window.onload = function() {
-            initChart();
-            if (userToken) {
-                document.getElementById('loginModalOverlay').style.display = 'none';
-                fetchDashboardSummary();
-                fetchSnoreEvents();
-            }
-        };
-
-        async function handleLogin() {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-
-            try {
-                const res = await fetch(`${API_URL}/auth/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    userToken = data.token;
-                    localStorage.setItem('pillow_token', userToken);
-                    document.getElementById('loginModalOverlay').style.display = 'none';
-                    fetchDashboardSummary();
-                    fetchSnoreEvents();
-                } else {
-                    alert('เข้าสู่ระบบไม่สำเร็จ: ' + data.message);
-                }
-            } catch (err) {
-                alert('ไม่สามารถเชื่อมต่อ Server Backend ได้');
-            }
-        }
-
-        function handleLogout() {
-            localStorage.removeItem('pillow_token');
-            location.reload();
-        }
-
+        // --- Control Airbag & Mode ---
         async function controlNode(nodeId, action) {
             const node = document.getElementById(`node-${nodeId}`);
             const status = document.getElementById('airbagStatus');
@@ -1092,7 +1057,11 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${userToken}`
                     },
-                    body: JSON.stringify({ device_id: 'pillow-001', zone: nodeId.toUpperCase(), action: apiAction })
+                    body: JSON.stringify({ 
+                        device_id: getCurrentDeviceId(), 
+                        zone: nodeId.toUpperCase(), 
+                        action: apiAction 
+                    })
                 });
                 const data = await res.json();
 
@@ -1106,6 +1075,9 @@
                     }
                     status.innerText = "สั่งงานสำเร็จ";
                     status.style.color = "#4ade80";
+                } else {
+                    status.innerText = "สั่งงานล้มเหลว";
+                    status.style.color = "#ef4444";
                 }
             } catch (err) {
                 status.innerText = "เกิดข้อผิดพลาด";
@@ -1121,7 +1093,10 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${userToken}`
                     },
-                    body: JSON.stringify({ device_id: 'pillow-001', auto_mode: element.checked })
+                    body: JSON.stringify({ 
+                        device_id: getCurrentDeviceId(), 
+                        auto_mode: element.checked 
+                    })
                 });
             } catch (err) {
                 console.error('Failed to update Auto Mode', err);
@@ -1159,61 +1134,118 @@
             alert("เกณฑ์การคำนวณคะแนนการนอน (เต็ม 100):\n\n1. ระยะเวลานอน (40%): เหมาะสมที่ 7-9 ชั่วโมง\n2. ดัชนีการกรน (40%): ตรวจจับจากระดับเสียง (>55 dB)\n3. ความต่อเนื่องของการนอน (20%): วัดจากจำนวนครั้งที่ถุงลมพองตัวปรับท่านอน");
         }
 
-        // 1. ดึงและแสดงรหัสหมอนปัจจุบันเมื่อเข้าสู่ระบบ
-        function loadDeviceInfo() {
-          const userData = JSON.parse(localStorage.getItem('pillow_user') || '{}');
-          if (userData.device_id) {
-            document.getElementById('displayDeviceId').innerText = userData.device_id;
-          }
-        }
-        
-        // 2. ฟังก์ชันส่งคำสั่งเปลี่ยน/ผูกรหัสหมอนใหม่ไปยัง Backend
-        async function handlePairDevice() {
-          const newDeviceId = document.getElementById('pairDeviceIdInput').value.trim();
-        
-          if (!newDeviceId) {
-            alert('กรุณากรอกรหัสหมอนที่ต้องการผูก');
-            return;
-          }
-        
-          try {
-            const res = await fetch(`${API_URL}/user/pair-device`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${userToken}`
-              },
-              body: JSON.stringify({ device_id: newDeviceId })
-            });
-        
-            const data = await res.json();
-        
-            if (data.success) {
-              alert(data.message);
-              // อัปเดตการแสดงผลบนหน้าเว็บ
-              document.getElementById('displayDeviceId').innerText = newDeviceId;
-              document.getElementById('pairDeviceIdInput').value = '';
-        
-              // อัปเดตข้อมูล LocalStorage
-              const userData = JSON.parse(localStorage.getItem('pillow_user') || '{}');
-              userData.device_id = newDeviceId;
-              localStorage.setItem('pillow_user', JSON.stringify(userData));
-        
-              // โหลดข้อมูล Dashboard ใหม่ตามหมอนใบใหม่
-              loadDashboardSummary();
-            } else {
-              alert('ไม่สามารถผูกหมอนได้: ' + (data.message || data.error));
+        // --- WaveSurfer Audio Player ---
+        function initWaveSurfer() {
+            if (!wavesurfer) {
+                wavesurfer = WaveSurfer.create({
+                    container: '#waveformContainer',
+                    waveColor: '#475569',
+                    progressColor: '#0284c7',
+                    cursorColor: '#38bdf8',
+                    barWidth: 2,
+                    height: 80
+                });
+
+                wavesurfer.on('audioprocess', () => {
+                    const time = wavesurfer.getCurrentTime();
+                    const mins = Math.floor(time / 60).toString().padStart(2, '0');
+                    const secs = Math.floor(time % 60).toString().padStart(2, '0');
+                    const ms = Math.floor((time % 1) * 100).toString().padStart(2, '0');
+                    document.getElementById('timerDisplay').innerText = `${mins}:${secs}.${ms}`;
+                });
+
+                wavesurfer.on('finish', () => {
+                    const icon = document.getElementById('playIcon');
+                    if (icon) icon.className = 'fa-solid fa-play';
+                });
             }
-          } catch (err) {
-            alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
-          }
         }
-        
-        // เรียกใช้งานฟังก์ชันเมื่อโหลดหน้าเว็บ
-        document.addEventListener('DOMContentLoaded', () => {
-          loadDeviceInfo();
-        });
-        
+
+        function openAudioModal(time, infoText, audioUrl) {
+            document.getElementById('modalSubTitle').innerText = `${time} น. • ${infoText}`;
+            document.getElementById('audioModal').style.display = 'flex';
+            
+            initWaveSurfer();
+            const baseUrl = API_URL.replace('/api', '');
+            const fullAudioUrl = audioUrl ? `${baseUrl}${audioUrl}` : `${baseUrl}/uploads/demo.mp3`;
+            
+            wavesurfer.load(fullAudioUrl).catch(err => {
+                console.warn('Unable to load audio URL, falling back:', err);
+            });
+        }
+
+        function togglePlayAudio() {
+            if (wavesurfer) {
+                wavesurfer.playPause();
+                const isPlaying = wavesurfer.isPlaying();
+                document.getElementById('playIcon').className = isPlaying ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+            }
+        }
+
+        function seekAudio(seconds) {
+            if (wavesurfer) {
+                const currentTime = wavesurfer.getCurrentTime();
+                wavesurfer.setTime(Math.max(0, currentTime + seconds));
+            }
+        }
+
+        function closeAudioModal() {
+            if (wavesurfer) {
+                wavesurfer.stop();
+            }
+            document.getElementById('playIcon').className = 'fa-solid fa-play';
+            document.getElementById('audioModal').style.display = 'none';
+        }
+
+        // --- Export & Reset ---
+        async function exportData() {
+            try {
+                const res = await fetch(`${API_URL}/snore-events`, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+                const data = await res.json();
+
+                if (!data.success || !data.data || data.data.length === 0) {
+                    return alert("ไม่พบข้อมูลประวัติการนอนสำหรับส่งออก");
+                }
+
+                let csvContent = "data:text/csv;charset=utf-8,\uFEFFID,Device ID,Time,Snore Prob (%),Is Inflated\n";
+                data.data.forEach(row => {
+                    const timeStr = new Date(row.created_at).toLocaleString('th-TH');
+                    csvContent += `${row.id || ''},${row.device_id || ''},${timeStr},${row.snore_prob || 0},${row.is_inflated ? 'Yes' : 'No'}\n`;
+                });
+
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `snore_report_${new Date().toISOString().slice(0,10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (err) {
+                alert("เกิดข้อผิดพลาดในการส่งออกรายงาน");
+            }
+        }
+
+        async function resetData() {
+            if (confirm("คุณแน่ใจหรือไม่ว่าต้องการล้างประวัติการนอนทั้งหมด? ข้อมูลนี้จะไม่สามารถคืนค่าได้")) {
+                try {
+                    const res = await fetch(`${API_URL}/snore-events`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${userToken}` }
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        alert(data.message || 'ลบประวัติสำเร็จ');
+                        fetchSnoreEvents();
+                        fetchDashboardSummary();
+                    }
+                } catch (err) {
+                    alert("ไม่สามารถลบข้อมูลได้ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+                }
+            }
+        }
     </script>
 </body>
 </html>
