@@ -471,6 +471,31 @@
                 <button class="carousel-nav-btn prev-btn" onclick="moveCarousel(-1)"><i class="fa-solid fa-chevron-left"></i></button>
                 <button class="carousel-nav-btn next-btn" onclick="moveCarousel(1)"><i class="fa-solid fa-chevron-right"></i></button>
 
+                <!-- Card ข้อมูลอุปกรณ์ ESP32 และการจับคู่หมอน -->
+                <div class="device-card" style="background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 20px; color: #fff;">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                      <h3 style="margin: 0; font-size: 1.1rem; color: #94a3b8;">📱 หมอนอัจฉริยะที่เชื่อมต่อ</h3>
+                      <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
+                        <span id="displayDeviceId" style="font-size: 1.5rem; font-weight: bold; color: #38bdf8;">pillow-001</span>
+                        <span id="deviceStatusBadge" style="background: #22c55e; color: #fff; padding: 3px 10px; border-radius: 20px; font-size: 0.8rem;">● Online</span>
+                      </div>
+                    </div>
+                  </div>
+                
+                  <hr style="border-color: #334155; margin: 15px 0;">
+                
+                  <!-- ฟอร์มเปลี่ยน / จับคู่รหัสหมอนใหม่ -->
+                  <div style="display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="pairDeviceIdInput" placeholder="กรอกรหัสหมอน เช่น pillow-002" 
+                           style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #475569; background: #0f172a; color: #fff;">
+                    <button onclick="handlePairDevice()" 
+                            style="padding: 10px 18px; border-radius: 8px; border: none; background: #0284c7; color: #fff; font-weight: bold; cursor: pointer;">
+                      ผูกหมอนใหม่
+                    </button>
+                  </div>
+                </div>
+                
                 <div class="carousel-page active">
                     <div class="score-title">
                         คะแนนการนอนหลับเมื่อคืน
@@ -1133,6 +1158,62 @@
         function showScoreInfo() {
             alert("เกณฑ์การคำนวณคะแนนการนอน (เต็ม 100):\n\n1. ระยะเวลานอน (40%): เหมาะสมที่ 7-9 ชั่วโมง\n2. ดัชนีการกรน (40%): ตรวจจับจากระดับเสียง (>55 dB)\n3. ความต่อเนื่องของการนอน (20%): วัดจากจำนวนครั้งที่ถุงลมพองตัวปรับท่านอน");
         }
+
+        // 1. ดึงและแสดงรหัสหมอนปัจจุบันเมื่อเข้าสู่ระบบ
+        function loadDeviceInfo() {
+          const userData = JSON.parse(localStorage.getItem('pillow_user') || '{}');
+          if (userData.device_id) {
+            document.getElementById('displayDeviceId').innerText = userData.device_id;
+          }
+        }
+        
+        // 2. ฟังก์ชันส่งคำสั่งเปลี่ยน/ผูกรหัสหมอนใหม่ไปยัง Backend
+        async function handlePairDevice() {
+          const newDeviceId = document.getElementById('pairDeviceIdInput').value.trim();
+        
+          if (!newDeviceId) {
+            alert('กรุณากรอกรหัสหมอนที่ต้องการผูก');
+            return;
+          }
+        
+          try {
+            const res = await fetch(`${API_URL}/user/pair-device`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userToken}`
+              },
+              body: JSON.stringify({ device_id: newDeviceId })
+            });
+        
+            const data = await res.json();
+        
+            if (data.success) {
+              alert(data.message);
+              // อัปเดตการแสดงผลบนหน้าเว็บ
+              document.getElementById('displayDeviceId').innerText = newDeviceId;
+              document.getElementById('pairDeviceIdInput').value = '';
+        
+              // อัปเดตข้อมูล LocalStorage
+              const userData = JSON.parse(localStorage.getItem('pillow_user') || '{}');
+              userData.device_id = newDeviceId;
+              localStorage.setItem('pillow_user', JSON.stringify(userData));
+        
+              // โหลดข้อมูล Dashboard ใหม่ตามหมอนใบใหม่
+              loadDashboardSummary();
+            } else {
+              alert('ไม่สามารถผูกหมอนได้: ' + (data.message || data.error));
+            }
+          } catch (err) {
+            alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+          }
+        }
+        
+        // เรียกใช้งานฟังก์ชันเมื่อโหลดหน้าเว็บ
+        document.addEventListener('DOMContentLoaded', () => {
+          loadDeviceInfo();
+        });
+        
     </script>
 </body>
 </html>
