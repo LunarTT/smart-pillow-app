@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Anti-Snoring Pillow Dashboard v8</title>
+    <!-- Google Fonts & FontAwesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- WaveSurfer.js สำหรับเล่นเสียงและแสดง Waveform จริง -->
+    <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-body: #0f172a;
+            --bg-container: #1e293b;
+            --bg-card: #0f172a;
+            --bg-subcard: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --header-bg: linear-gradient(135deg, #1e1b4b, #312e81);
+            --carousel-bg: linear-gradient(135deg, #2e1065, #3b0764);
+        }
+
+        body.light-mode {
+            --bg-body: #e2e8f0;
+            --bg-container: #ffffff;
+            --bg-card: #f8fafc;
+            --bg-subcard: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border-color: #cbd5e1;
+            --header-bg: linear-gradient(135deg, #4338ca, #6366f1);
+            --carousel-bg: linear-gradient(135deg, #6b21a8, #7e22ce);
+        }
+
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            font-family: 'Kanit', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            display: flex; justify-content: center; align-items: flex-start;
+            min-height: 100vh; padding: 10px;
+        }
+
+        .mobile-container {
+            width: 100%; max-width: 414px;
+            background: var(--bg-container);
+            border-radius: 28px; overflow: hidden;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            padding-bottom: 20px;
+            position: relative;
+        }
+
+        .header {
+            padding: 18px 20px; background: var(--header-bg);
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .header-title h2 { font-size: 1.1rem; font-weight: 600; color: #ffffff; }
+        .header-title p { font-size: 0.75rem; color: #c7d2fe; }
+
+        .header-actions { display: flex; align-items: center; gap: 10px; }
+
+        .theme-toggle-btn {
+            background: rgba(255, 255, 255, 0.2); border: none;
+            color: #ffffff; width: 32px; height: 32px; border-radius: 50%;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .status-badge {
+            background: rgba(34, 197, 94, 0.2); color: #4ade80;
+            padding: 4px 10px; border-radius: 12px; font-size: 0.7rem;
+            display: flex; align-items: center; gap: 6px; border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        body.light-mode .status-badge { background: #dcfce7; color: #15803d; }
+
+        .status-dot {
+            width: 6px; height: 6px; background-color: #4ade80; border-radius: 50%;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        .tab-content { display: none; padding: 16px; flex-direction: column; gap: 16px; }
+        .tab-content.active { display: flex; }
+
+        /* Carousel Card */
+        .carousel-card {
+            background: var(--carousel-bg); border-radius: 20px;
+            padding: 18px 16px; border: 1px solid rgba(255,255,255,0.1);
+            position: relative; min-height: 165px; display: flex; flex-direction: column; justify-content: center;
+        }
+
+        .carousel-page { display: none; text-align: center; }
+        .carousel-page.active { display: flex; flex-direction: column; align-items: center; width: 100%; }
+
+        .carousel-nav-btn {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.15); border: none; color: #ffffff;
+            width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; font-size: 0.8rem; z-index: 10;
+        }
+
+        .prev-btn { left: 8px; }
+        .next-btn { right: 8px; }
+
+        .carousel-dots { display: flex; justify-content: center; gap: 6px; margin-top: 10px; }
+        .dot { width: 6px; height: 6px; background: rgba(255, 255, 255, 0.3); border-radius: 50%; transition: 0.3s; }
+        .dot.active { background: #38bdf8; width: 16px; border-radius: 10px; }
+
+        .score-title { font-size: 0.85rem; color: #f3e8ff; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+        .info-btn { background: none; border: none; color: #38bdf8; cursor: pointer; font-size: 0.85rem; }
+        .score-value { font-size: 2.8rem; font-weight: 600; color: #ffffff; line-height: 1; }
+        .score-desc { font-size: 0.75rem; color: #e9d5ff; margin-top: 4px; }
+
+        .chart-wrapper { width: 100%; height: 110px; margin-top: 4px; }
+
+        .env-grid { display: flex; justify-content: space-around; width: 100%; margin-top: 10px; }
+        .env-box { display: flex; flex-direction: column; align-items: center; }
+        .env-box i { font-size: 1.2rem; margin-bottom: 2px; }
+        .env-box.temp i { color: #f97316; }
+        .env-box.humid i { color: #38bdf8; }
+        .env-value { font-size: 1.25rem; font-weight: 600; color: #ffffff; }
+        .env-label { font-size: 0.68rem; color: #f3e8ff; }
+
+        /* Time Setup */
+        .time-setup-card {
+            background: var(--bg-card); padding: 14px; border-radius: 16px;
+            border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px;
+        }
+        .time-setup-title { font-size: 0.8rem; color: var(--text-secondary); display: flex; justify-content: space-between; }
+        .time-inputs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .time-box { background: var(--bg-subcard); padding: 8px 10px; border-radius: 10px; display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--border-color); }
+        .time-header-row { display: flex; justify-content: space-between; align-items: center; }
+        .time-box label { font-size: 0.68rem; color: var(--text-secondary); }
+        .time-box input[type="time"] {
+            background: transparent; border: none; color: #38bdf8;
+            font-weight: 600; font-size: 0.95rem; font-family: 'Kanit', sans-serif; outline: none;
+        }
+        .duration-badge {
+            text-align: center; font-size: 0.75rem; color: #22c55e;
+            background: rgba(34, 197, 94, 0.1); padding: 4px; border-radius: 8px;
+        }
+
+        .switch-mini { position: relative; display: inline-block; width: 32px; height: 16px; }
+        .switch-mini input { opacity: 0; width: 0; height: 0; }
+        .slider-mini {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #64748b; transition: .3s; border-radius: 24px;
+        }
+        .slider-mini:before {
+            position: absolute; content: ""; height: 12px; width: 12px; left: 2px; bottom: 2px;
+            background-color: white; transition: .3s; border-radius: 50%;
+        }
+        input:checked + .slider-mini { background-color: #38bdf8; }
+        input:checked + .slider-mini:before { transform: translateX(16px); }
+
+        /* Airbag & Pillow */
+        .airbag-control-card {
+            background: var(--bg-card); border-radius: 20px; padding: 16px;
+            border: 1px solid var(--border-color);
+        }
+        .airbag-title { font-size: 0.85rem; color: var(--text-primary); margin-bottom: 12px; display: flex; justify-content: space-between; }
+
+        .pillow-frame {
+            position: relative; width: 100%; height: 110px;
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border-radius: 35px 35px 25px 25px; border: 2px solid #38bdf8;
+            box-shadow: inset 0 0 15px rgba(56, 189, 248, 0.2);
+            margin-bottom: 14px; display: grid;
+            grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+            padding: 10px; gap: 8px;
+        }
+
+        body.light-mode .pillow-frame {
+            background: linear-gradient(145deg, #ffffff, #e2e8f0);
+            border-color: #0284c7; box-shadow: inset 0 0 15px rgba(2, 132, 199, 0.1);
+        }
+
+        .airbag-node {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1.5px dashed var(--text-secondary); border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.65rem; color: var(--text-secondary);
+            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .airbag-node.inflated {
+            background: radial-gradient(circle, #38bdf8 0%, #0284c7 100%);
+            color: #ffffff; font-weight: 600; border-style: solid;
+            border-color: #bae6fd; transform: scale(1.04);
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.7);
+        }
+
+        .airbag-grid-4 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+        .airbag-zone-box {
+            background: var(--bg-subcard); padding: 8px; border-radius: 12px;
+            text-align: center; border: 1px solid var(--border-color);
+            display: flex; flex-direction: column; gap: 4px;
+        }
+
+        .airbag-zone-box span { font-size: 0.7rem; color: var(--text-primary); font-weight: 500; }
+        .btn-row { display: flex; gap: 6px; }
+
+        .zone-btn {
+            flex: 1; padding: 5px 0; border-radius: 6px; border: none;
+            font-size: 0.65rem; font-weight: 500; cursor: pointer; transition: 0.2s;
+        }
+
+        .btn-inflate { background: #0284c7; color: white; }
+        .btn-deflate { background: var(--border-color); color: var(--text-secondary); }
+
+        .toggle-card {
+            background: var(--bg-card); padding: 12px 14px; border-radius: 16px;
+            border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;
+        }
+        .toggle-label span { font-size: 0.82rem; font-weight: 500; color: var(--text-primary); }
+        .toggle-label small { font-size: 0.68rem; color: var(--text-secondary); display: block; }
+
+        .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #64748b; transition: .3s; border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px;
+            background-color: white; transition: .3s; border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #38bdf8; }
+        input:checked + .slider:before { transform: translateX(22px); }
+
+        /* History */
+        .history-date-picker {
+            background: var(--bg-card); padding: 12px; border-radius: 16px;
+            border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;
+        }
+        .history-date-picker label { font-size: 0.8rem; color: var(--text-secondary); }
+        .history-date-picker input[type="date"] {
+            background: var(--bg-subcard); border: 1px solid var(--border-color);
+            color: #38bdf8; padding: 6px 10px; border-radius: 10px; font-family: 'Kanit', sans-serif;
+        }
+
+        .history-summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .history-stat-card {
+            background: var(--bg-card); padding: 12px; border-radius: 14px;
+            border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 4px;
+        }
+        .history-stat-card label { font-size: 0.7rem; color: var(--text-secondary); }
+        .history-stat-card span { font-size: 1.1rem; font-weight: 600; color: var(--text-primary); }
+
+        .snore-log-card {
+            background: var(--bg-card); border-radius: 16px; padding: 14px;
+            border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 10px;
+        }
+        .snore-log-title { font-size: 0.85rem; color: var(--text-primary); font-weight: 500; display: flex; justify-content: space-between; }
+        
+        .log-list { display: flex; flex-direction: column; gap: 8px; }
+        .log-item {
+            background: var(--bg-subcard); padding: 10px 12px; border-radius: 10px;
+            border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;
+        }
+        .log-info { display: flex; flex-direction: column; gap: 2px; }
+        .log-info span { font-size: 0.8rem; font-weight: 500; color: var(--text-primary); }
+        .log-info small { font-size: 0.68rem; color: var(--text-secondary); }
+        
+        .play-btn {
+            background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 5px 10px; border-radius: 8px; font-size: 0.7rem; cursor: pointer;
+            display: flex; align-items: center; gap: 4px; transition: 0.2s;
+        }
+        .play-btn:hover { background: #38bdf8; color: white; }
+
+        .insight-card {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(3, 105, 161, 0.1));
+            border: 1px solid rgba(56, 189, 248, 0.3); padding: 12px 14px; border-radius: 14px;
+            display: flex; gap: 10px; align-items: flex-start;
+        }
+        .insight-card i { color: #38bdf8; font-size: 1.1rem; margin-top: 2px; }
+        .insight-text p { font-size: 0.78rem; color: var(--text-primary); font-weight: 500; }
+        .insight-text small { font-size: 0.68rem; color: var(--text-secondary); }
+
+        /* Settings */
+        .settings-group {
+            background: var(--bg-card); border-radius: 16px; padding: 14px;
+            border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px;
+        }
+        .settings-group-title { font-size: 0.85rem; font-weight: 600; color: #38bdf8; display: flex; align-items: center; gap: 6px; }
+        
+        .setting-row { display: flex; justify-content: space-between; align-items: center; }
+        .setting-row label { font-size: 0.8rem; color: var(--text-primary); }
+        .setting-row select {
+            background: var(--bg-subcard); border: 1px solid var(--border-color);
+            color: var(--text-primary); padding: 4px 8px; border-radius: 8px; font-family: 'Kanit', sans-serif;
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 10px; border-radius: 10px; font-weight: 500; font-size: 0.8rem; cursor: pointer; width: 100%;
+        }
+
+        /* Navbar */
+        .navbar {
+            display: flex; justify-content: space-around; padding: 12px 0 0 0;
+            border-top: 1px solid var(--border-color); margin-top: 10px;
+        }
+        .nav-item {
+            color: var(--text-secondary); font-size: 1.1rem; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+        }
+        .nav-item span { font-size: 0.65rem; }
+        .nav-item.active { color: #38bdf8; }
+
+        /* ================= AUDIO WAVEFORM MODAL PLAYER ================= */
+        .audio-modal-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(8px);
+            z-index: 100;
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 24px 16px;
+            border-radius: 28px;
+        }
+
+        body.light-mode .audio-modal-overlay { background: rgba(255, 255, 255, 0.95); }
+
+        .modal-header { text-align: center; }
+        .modal-header h3 { font-size: 1rem; color: var(--text-primary); font-weight: 600; }
+        .modal-header p { font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px; }
+
+        .waveform-display-area {
+            position: relative;
+            width: 100%;
+            height: 120px;
+            background: var(--bg-card);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 10px;
+            display: flex;
+            align-items: center;
+        }
+
+        #waveformContainer { width: 100%; }
+
+        .timer-display {
+            text-align: center;
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: monospace;
+            margin: 10px 0;
+        }
+
+        .player-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 10px;
+        }
+
+        .control-btn-circle {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.9rem; cursor: pointer; transition: 0.2s;
+        }
+
+        .control-btn-main {
+            background: #0284c7;
+            color: white;
+            width: 56px; height: 56px;
+            font-size: 1.3rem;
+            border: none;
+        }
+
+        .btn-finish {
+            background: var(--border-color);
+            color: var(--text-primary);
+            border: none;
+            padding: 10px 24px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            align-self: flex-end;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="mobile-container">
+
+        <!-- Login / Register Modal Overlay -->
+        <div id="loginModalOverlay" style="position: absolute; top:0; left:0; width:100%; height:100%; background: var(--bg-container); z-index: 999; display: flex; flex-direction: column; justify-content: center; padding: 24px;">
+            
+            <!-- ฟอร์มเข้าสู่ระบบ (Login Form) -->
+            <div id="loginForm">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h2 style="color: #38bdf8;">เข้าสู่ระบบ Smart Pillow</h2>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary);">กรุณากรอกข้อมูลเพื่อเชื่อมต่อกับหมอน</p>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <input type="email" id="loginEmail" placeholder="อีเมล (Email)" value="user01@example.com" style="padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-subcard); color: var(--text-primary); outline: none;">
+                    <input type="password" id="loginPassword" placeholder="รหัสผ่าน" value="password123" style="padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-subcard); color: var(--text-primary); outline: none;">
+                    <button onclick="handleLogin()" style="padding: 12px; border-radius: 10px; background: #0284c7; color: white; border: none; font-weight: bold; cursor: pointer;">เข้าสู่ระบบ</button>
+                    
+                    <p style="text-align: center; font-size: 0.8rem; color: var(--text-secondary); margin-top: 10px;">
+                        ยังไม่มีบัญชี? <a href="#" onclick="toggleAuthMode('register')" style="color: #38bdf8; text-decoration: none;">สมัครสมาชิก</a>
+                    </p>
+                </div>
+            </div>
+
+            <!-- ฟอร์มสมัครสมาชิก (Register Form) -->
+            <div id="registerForm" style="display: none;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h2 style="color: #38bdf8;">สมัครสมาชิกใหม่</h2>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary);">สร้างบัญชีเพื่อเริ่มต้นใช้งานหมอนอัจฉริยะ</p>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <input type="text" id="regUsername" placeholder="ชื่อผู้ใช้ (Username)" style="padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-subcard); color: var(--text-primary); outline: none;">
+                    <input type="email" id="regEmail" placeholder="อีเมล (Email)" style="padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-subcard); color: var(--text-primary); outline: none;">
+                    <input type="password" id="regPassword" placeholder="รหัสผ่าน" style="padding: 12px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--bg-subcard); color: var(--text-primary); outline: none;">
+                    <button onclick="handleRegister()" style="padding: 12px; border-radius: 10px; background: #22c55e; color: white; border: none; font-weight: bold; cursor: pointer;">ยืนยันการสมัครสมาชิก</button>
+                    
+                    <p style="text-align: center; font-size: 0.8rem; color: var(--text-secondary); margin-top: 10px;">
+                        มีบัญชีอยู่แล้ว? <a href="#" onclick="toggleAuthMode('login')" style="color: #38bdf8; text-decoration: none;">เข้าสู่ระบบ</a>
+                    </p>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Header -->
+        <div class="header">
+            <div class="header-title">
+                <h2>Smart Pillow</h2>
+                <p>ESP32 Connected</p>
+            </div>
+            <div class="header-actions">
+                <button class="theme-toggle-btn" onclick="toggleTheme()" title="สลับโหมดมืด/สว่าง">
+                    <i class="fa-solid fa-sun" id="themeIcon"></i>
+                </button>
+                <div class="status-badge">
+                    <div class="status-dot"></div>
+                    Online
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 1: HOME -->
+        <div class="tab-content active" id="tab-home">
+            <div class="carousel-card">
+                <button class="carousel-nav-btn prev-btn" onclick="moveCarousel(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                <button class="carousel-nav-btn next-btn" onclick="moveCarousel(1)"><i class="fa-solid fa-chevron-right"></i></button>
+
+                <div class="carousel-page active">
+                    <div class="score-title">
+                        คะแนนการนอนหลับเมื่อคืน
+                        <button class="info-btn" onclick="showScoreInfo()"><i class="fa-solid fa-circle-info"></i></button>
+                    </div>
+                    <div class="score-value" id="sleepScoreValue">--</div>
+                    <div class="score-desc" id="sleepScoreDesc">กำลังคำนวณผลการนอน...</div>
+                </div>
+
+                <div class="carousel-page">
+                    <div class="score-title">
+                        <span><i class="fa-solid fa-chart-line"></i> สถิติการกรนรายครั้ง (เมื่อคืน)</span>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="snoreLineChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="carousel-page">
+                    <div class="score-title">
+                        <span><i class="fa-solid fa-house-medical"></i> สภาพแวดล้อมห้องนอน</span>
+                    </div>
+                    <div class="env-grid">
+                        <div class="env-box temp">
+                            <i class="fa-solid fa-temperature-half"></i>
+                            <div class="env-value" id="tempValue">-- °C</div>
+                            <div class="env-label">อุณหภูมิห้อง</div>
+                        </div>
+                        <div class="env-box humid">
+                            <i class="fa-solid fa-droplet"></i>
+                            <div class="env-value" id="humidValue">-- %</div>
+                            <div class="env-label">ความชื้นสัมพัทธ์</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="carousel-dots">
+                    <div class="dot active"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            </div>
+
+            <div class="time-setup-card">
+                <div class="time-setup-title">
+                    <span><i class="fa-solid fa-clock"></i> ตั้งเวลาการนอนและปลุก</span>
+                    <small style="color: #38bdf8;">คำนวณอัตโนมัติ</small>
+                </div>
+                <div class="time-inputs-grid">
+                    <div class="time-box">
+                        <label><i class="fa-solid fa-moon"></i> เวลาเข้านอน</label>
+                        <input type="time" id="sleepTime" value="23:00" onchange="calculateDuration()">
+                    </div>
+                    <div class="time-box">
+                        <div class="time-header-row">
+                            <label><i class="fa-solid fa-bell"></i> เวลาตื่น</label>
+                            <label class="switch-mini">
+                                <input type="checkbox" id="alarmToggle" checked onchange="toggleAlarm(this)">
+                                <span class="slider-mini"></span>
+                            </label>
+                        </div>
+                        <input type="time" id="wakeTime" value="07:00" onchange="calculateDuration()">
+                    </div>
+                </div>
+                <div class="duration-badge" id="durationDisplay">
+                    เป้าหมายการนอน: 8 ชั่วโมง 0 นาที (เปิดระบบปลุก)
+                </div>
+            </div>
+
+            <div class="toggle-card">
+                <div class="toggle-label">
+                    <span>โหมดปรับถุงลมอัตโนมัติ</span>
+                    <small>พองถุงลมอัตโนมัติเมื่อตรวจพบเสียงกรน</small>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" checked onchange="toggleAutoMode(this)">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="airbag-control-card">
+                <div class="airbag-title">
+                    <span>ควบคุมถุงลม 4 โซน (4-Zone Matrix)</span>
+                    <small id="airbagStatus" style="color: #38bdf8;">พร้อมใช้งาน</small>
+                </div>
+
+                <div class="pillow-frame">
+                    <div class="airbag-node" id="node-tl">ซ้ายบน</div>
+                    <div class="airbag-node" id="node-tr">ขวาบน</div>
+                    <div class="airbag-node" id="node-bl">ซ้ายล่าง (คอ)</div>
+                    <div class="airbag-node" id="node-br">ขวาล่าง (คอ)</div>
+                </div>
+
+                <div class="airbag-grid-4">
+                    <div class="airbag-zone-box">
+                        <span>ซ้ายบน</span>
+                        <div class="btn-row">
+                            <button class="zone-btn btn-inflate" onclick="controlNode('tl', 'พองลม')">+ พอง</button>
+                            <button class="zone-btn btn-deflate" onclick="controlNode('tl', 'ยุบลม')">- ยุบ</button>
+                        </div>
+                    </div>
+                    <div class="airbag-zone-box">
+                        <span>ขวาบน</span>
+                        <div class="btn-row">
+                            <button class="zone-btn btn-inflate" onclick="controlNode('tr', 'พองลม')">+ พอง</button>
+                            <button class="zone-btn btn-deflate" onclick="controlNode('tr', 'ยุบลม')">- ยุบ</button>
+                        </div>
+                    </div>
+                    <div class="airbag-zone-box">
+                        <span>ซ้ายล่าง (รองคอ)</span>
+                        <div class="btn-row">
+                            <button class="zone-btn btn-inflate" onclick="controlNode('bl', 'พองลม')">+ พอง</button>
+                            <button class="zone-btn btn-deflate" onclick="controlNode('bl', 'ยุบลม')">- ยุบ</button>
+                        </div>
+                    </div>
+                    <div class="airbag-zone-box">
+                        <span>ขวาล่าง (รองคอ)</span>
+                        <div class="btn-row">
+                            <button class="zone-btn btn-inflate" onclick="controlNode('br', 'พองลม')">+ พอง</button>
+                            <button class="zone-btn btn-deflate" onclick="controlNode('br', 'ยุบลม')">- ยุบ</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: HISTORY -->
+        <div class="tab-content" id="tab-history">
+            <div class="history-date-picker">
+                <label><i class="fa-solid fa-calendar-days"></i> เลือกวันที่ดูประวัติ</label>
+                <input type="date" id="historyDate" value="2026-09-15" onchange="fetchSnoreEvents()">
+            </div>
+
+            <div class="history-summary-grid">
+                <div class="history-stat-card">
+                    <label><i class="fa-solid fa-clock"></i> เวลานอนรวม</label>
+                    <span id="histDuration">7 ชม. 45 นาที</span>
+                    <small style="font-size: 0.65rem; color: var(--text-secondary);">เข้านอน 23:15 - ตื่น 07:00</small>
+                </div>
+                <div class="history-stat-card">
+                    <label><i class="fa-solid fa-volume-high"></i> สถิติการกรน</label>
+                    <span id="histSnoreCount">0 ครั้ง</span>
+                    <small style="font-size: 0.65rem; color: #38bdf8;">ตรวจจับโดย AI</small>
+                </div>
+            </div>
+
+            <div class="insight-card">
+                <i class="fa-solid fa-user-doctor"></i>
+                <div class="insight-text">
+                    <p>ข้อแนะนำจากระบบวิเคราะห์</p>
+                    <small id="insightDesc">ระบบวิเคราะห์ข้อมูลเรียลไทม์จะอัปเดตคำแนะนำให้อัตโนมัติเมื่อเกิดการกรน</small>
+                </div>
+            </div>
+
+            <div class="snore-log-card">
+                <div class="snore-log-title">
+                    <span><i class="fa-solid fa-list-ul"></i> ประวัติการกรนรายครั้ง</span>
+                    <small style="color: #38bdf8;">ฟังเสียงจริง WaveSurfer</small>
+                </div>
+                <div class="log-list">
+                    <!-- โหลดรายการจาก Database -->
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: SETTINGS -->
+        <div class="tab-content" id="tab-settings">
+            <div class="settings-group">
+                <div class="settings-group-title"><i class="fa-solid fa-microchip"></i> ฮาร์ดแวร์และการเชื่อมต่อ</div>
+                <div class="setting-row">
+                    <label>อุปกรณ์ ESP32</label>
+                    <span style="font-size: 0.8rem; color: #4ade80;">เชื่อมต่อแล้ว (192.168.1.45)</span>
+                </div>
+                <div class="setting-row">
+                    <label>ความแรงสัญญาณ Wi-Fi</label>
+                    <span style="font-size: 0.8rem; color: var(--text-primary);">-62 dBm (ดีมาก)</span>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-group-title"><i class="fa-solid fa-sliders"></i> ตั้งค่าความไวเซนเซอร์ตรวจจับ</div>
+                <div class="setting-row">
+                    <label>ระดับเสียงเริ่มทำงาน (dB)</label>
+                    <select>
+                        <option>50 dB (ไวมาก)</option>
+                        <option selected>55 dB (ปานกลาง)</option>
+                        <option>65 dB (ไวต่ำ)</option>
+                    </select>
+                </div>
+                <div class="setting-row">
+                    <label>ความสูงพองลมถุงลม</label>
+                    <select>
+                        <option>ระดับ 1 (นุ่มนวล)</option>
+                        <option selected>ระดับ 2 (มาตรฐาน)</option>
+                        <option>ระดับ 3 (สูงสุด)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="settings-group">
+                <div class="settings-group-title"><i class="fa-solid fa-database"></i> จัดการข้อมูล</div>
+                <button class="zone-btn btn-inflate" style="padding: 10px; font-size: 0.8rem;" onclick="exportData()">
+                    <i class="fa-solid fa-file-csv"></i> ส่งออกรายงานการนอน (CSV Export)
+                </button>
+                <button class="btn-danger" onclick="resetData()">
+                    <i class="fa-solid fa-trash-can"></i> รีเซ็ตประวัติการนอนทั้งหมด
+                </button>
+                <button class="btn-danger" style="background: rgba(239, 68, 68, 0.25); color: #ef4444;" onclick="handleLogout()">
+                    <i class="fa-solid fa-right-from-bracket"></i> ออกจากระบบ (Logout)
+                </button>
+            </div>
+        </div>
+
+        <!-- AUDIO WAVEFORM MODAL PLAYER -->
+        <div class="audio-modal-overlay" id="audioModal">
+            <div class="modal-header">
+                <h3 id="modalTitle">บันทึกเสียงการกรน</h3>
+                <p id="modalSubTitle">--:-- น.</p>
+            </div>
+
+            <div class="waveform-display-area">
+                <div id="waveformContainer"></div>
+            </div>
+
+            <div class="timer-display" id="timerDisplay">00:00.00</div>
+
+            <div class="player-controls">
+                <button class="control-btn-circle" onclick="seekAudio(-15)"><i class="fa-solid fa-rotate-left"></i></button>
+                <button class="control-btn-circle control-btn-main" onclick="togglePlayAudio()"><i class="fa-solid fa-play" id="playIcon"></i></button>
+                <button class="control-btn-circle" onclick="seekAudio(15)"><i class="fa-solid fa-rotate-right"></i></button>
+            </div>
+
+            <button class="btn-finish" onclick="closeAudioModal()">เสร็จสิ้น</button>
+        </div>
+
+        <!-- Navbar -->
+        <div class="navbar">
+            <div class="nav-item active" onclick="switchTab('home', this)">
+                <i class="fa-solid fa-house"></i>
+                <span>หน้าหลัก</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('history', this)">
+                <i class="fa-solid fa-chart-simple"></i>
+                <span>ประวัติ</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('settings', this)">
+                <i class="fa-solid fa-gear"></i>
+                <span>ตั้งค่า</span>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000/api';
+        let userToken = localStorage.getItem('pillow_token');
+        let wavesurfer = null;
+        let snoreChart = null;
+
+        // --- Navigation Tabs & Theme ---
+        function switchTab(tabName, navElement) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            navElement.classList.add('active');
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const icon = document.getElementById('themeIcon');
+            icon.className = document.body.classList.contains('light-mode') ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
+        }
+
+        // --- Carousel Logic ---
+        let currentSlide = 0;
+        const pages = document.querySelectorAll('.carousel-page');
+        const dots = document.querySelectorAll('.dot');
+
+        function showSlide(index) {
+            pages.forEach((page, i) => {
+                page.classList.toggle('active', i === index);
+                dots[i].classList.toggle('active', i === index);
+            });
+            currentSlide = index;
+        }
+
+        function moveCarousel(dir) {
+            let next = currentSlide + dir;
+            if (next < 0) next = pages.length - 1;
+            if (next >= pages.length) next = 0;
+            showSlide(next);
+        }
+
+        // --- Init Chart.js ---
+        function initChart() {
+            const ctx = document.getElementById('snoreLineChart').getContext('2d');
+            snoreChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'ความน่าจะเป็น AI (%)',
+                        data: [],
+                        borderColor: '#38bdf8', borderWidth: 2, pointRadius: 4, tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { labels: { color: '#e0e7ff', font: { size: 9 } } } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8', font: { size: 8 } } },
+                        y: { min: 0, max: 100, ticks: { color: '#94a3b8', font: { size: 8 } } }
+                    }
+                }
+            });
+        }
+
+        // --- WaveSurfer.js Real Audio Player ---
+        function initWaveSurfer() {
+            if (!wavesurfer) {
+                wavesurfer = WaveSurfer.create({
+                    container: '#waveformContainer',
+                    waveColor: '#475569',
+                    progressColor: '#ef4444',
+                    cursorColor: '#ef4444',
+                    barWidth: 2,
+                    height: 90
+                });
+
+                wavesurfer.on('audioprocess', () => {
+                    const time = wavesurfer.getCurrentTime();
+                    const mins = Math.floor(time / 60).toString().padStart(2, '0');
+                    const secs = Math.floor(time % 60).toString().padStart(2, '0');
+                    const ms = Math.floor((time % 1) * 100).toString().padStart(2, '0');
+                    document.getElementById('timerDisplay').innerText = `${mins}:${secs}.${ms}`;
+                });
+
+                wavesurfer.on('finish', () => {
+                    document.getElementById('playIcon').className = 'fa-solid fa-play';
+                });
+            }
+        }
+
+        function openAudioModal(time, infoText, audioUrl) {
+            document.getElementById('modalSubTitle').innerText = `${time} น. • ${infoText}`;
+            document.getElementById('audioModal').style.display = 'flex';
+            
+            initWaveSurfer();
+            // โหลดไฟล์เสียงจริงจาก URL หรือใช้ไฟล์ Demo
+            const fullAudioUrl = audioUrl ? `http://localhost:5000${audioUrl}` : 'http://localhost:5000/uploads/demo.mp3';
+            wavesurfer.load(fullAudioUrl);
+        }
+
+        function togglePlayAudio() {
+            if (wavesurfer) {
+                wavesurfer.playPause();
+                const isPlaying = wavesurfer.isPlaying();
+                document.getElementById('playIcon').className = isPlaying ? 'fa-solid fa-pause' : 'fa-solid fa-play';
+            }
+        }
+
+        function seekAudio(seconds) {
+            if (wavesurfer) {
+                const currentTime = wavesurfer.getCurrentTime();
+                wavesurfer.setTime(currentTime + seconds);
+            }
+        }
+
+        function closeAudioModal() {
+            if (wavesurfer) wavesurfer.stop();
+            document.getElementById('audioModal').style.display = 'none';
+        }
+
+        // --- Fetch Dashboard Summary (Real Data) ---
+        async function fetchDashboardSummary() {
+            try {
+                const res = await fetch(`${API_URL}/dashboard/summary`, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    document.getElementById('sleepScoreValue').innerText = data.sleepScore;
+                    document.getElementById('sleepScoreDesc').innerText = data.sleepScore >= 80 ? "คุณภาพการนอนอยู่ในเกณฑ์ดีมาก" : "พบสถิติการกรนรบกวนการนอน";
+                    document.getElementById('tempValue').innerText = `${data.temp} °C`;
+                    document.getElementById('humidValue').innerText = `${data.humid} %`;
+
+                    if (snoreChart) {
+                        snoreChart.data.labels = data.chartLabels;
+                        snoreChart.data.datasets[0].data = data.chartData;
+                        snoreChart.update();
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching dashboard summary:', err);
+            }
+        }
+        
+
+        // ฟังก์ชันสลับระหว่างหน้า Login และ Register
+        function toggleAuthMode(mode) {
+            if (mode === 'register') {
+                document.getElementById('loginForm').style.display = 'none';
+                document.getElementById('registerForm').style.display = 'block';
+            } else {
+                document.getElementById('loginForm').style.display = 'block';
+                document.getElementById('registerForm').style.display = 'none';
+            }
+        }
+
+        // ฟังก์ชันส่งข้อมูลสมัครสมาชิกไปยัง Backend API
+        async function handleRegister() {
+            const username = document.getElementById('regUsername').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value.trim();
+
+            if (!username || !email || !password) {
+                alert('กรุณากรอกข้อมูลให้ครบทุกช่อง');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    alert(data.message || 'สมัครสมาชิกสำเร็จ!');
+                    // เคลียร์ช่องป้อนข้อมูล แล้วสลับกลับไปหน้าเข้าสู่ระบบ
+                    document.getElementById('regUsername').value = '';
+                    document.getElementById('regEmail').value = '';
+                    document.getElementById('regPassword').value = '';
+                    
+                    // นำอีเมลไปกรอกในฟอร์ม Login ให้อัตโนมัติเพื่อความสะดวก
+                    document.getElementById('loginEmail').value = email;
+                    toggleAuthMode('login');
+                } else {
+                    alert('สมัครสมาชิกไม่สำเร็จ: ' + data.message);
+                }
+            } catch (err) {
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+            }
+        }
+
+
+        // --- Fetch Snore History (Real Data) ---
+        async function fetchSnoreEvents() {
+            try {
+                const res = await fetch(`${API_URL}/snore-events`, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    const logContainer = document.querySelector('.log-list');
+                    logContainer.innerHTML = '';
+
+                    if (data.data.length === 0) {
+                        logContainer.innerHTML = '<p style="text-align:center; font-size:0.8rem; color: var(--text-secondary); padding: 10px;">ไม่มีประวัติการกรน</p>';
+                        document.getElementById('histSnoreCount').innerText = '0 ครั้ง';
+                        return;
+                    }
+
+                    data.data.forEach((item, index) => {
+                        const timeStr = new Date(item.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+                        const logHTML = `
+                            <div class="log-item">
+                                <div class="log-info">
+                                    <span>ครั้งที่ ${data.data.length - index} (เวลา ${timeStr} น.)</span>
+                                    <small>ความน่าจะเป็น AI: ${item.snore_prob}% | ถุงลม: ${item.is_inflated ? 'พองลม' : 'ปกติ'}</small>
+                                </div>
+                                <button class="play-btn" onclick="openAudioModal('${timeStr}', 'ความน่าจะเป็น AI ${item.snore_prob}%', '${item.audio_url || ''}')">
+                                    <i class="fa-solid fa-waveform"></i> ฟังเสียง
+                                </button>
+                            </div>
+                        `;
+                        logContainer.innerHTML += logHTML;
+                    });
+
+                    document.getElementById('histSnoreCount').innerText = `${data.data.length} ครั้ง`;
+                }
+            } catch (err) {
+                console.error('Failed to fetch snore events:', err);
+            }
+        }
+
+        // --- CSV Export & Data Reset ---
+        async function exportData() {
+            try {
+                const res = await fetch(`${API_URL}/snore-events`, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+                const data = await res.json();
+
+                if (!data.success || data.data.length === 0) {
+                    alert("ไม่พบข้อมูลประวัติการนอนสำหรับส่งออก");
+                    return;
+                }
+
+                let csvContent = "data:text/csv;charset=utf-8,\uFEFFID,Device ID,Time,Snore Prob (%),Is Inflated\n";
+                data.data.forEach(row => {
+                    const timeStr = new Date(row.created_at).toLocaleString('th-TH');
+                    csvContent += `${row.id},${row.device_id},${timeStr},${row.snore_prob},${row.is_inflated ? 'Yes' : 'No'}\n`;
+                });
+
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `snore_report_${new Date().toISOString().slice(0,10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (err) {
+                alert("เกิดข้อผิดพลาดในการส่งออกรายงาน");
+            }
+        }
+
+        async function resetData() {
+            if (confirm("คุณแน่ใจหรือไม่ว่าต้องการล้างประวัติการนอนทั้งหมด? ข้อมูลนี้จะไม่สามารถคืนค่าได้")) {
+                try {
+                    const res = await fetch(`${API_URL}/snore-events`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${userToken}` }
+                    });
+                    const data = await res.json();
+
+                    if (data.success) {
+                        alert(data.message);
+                        fetchSnoreEvents();
+                        fetchDashboardSummary();
+                    }
+                } catch (err) {
+                    alert("ไม่สามารถลบข้อมูลได้ เกิดข้อผิดพลาดในการเชื่อมต่อ");
+                }
+            }
+        }
+
+        // --- User Auth & App Startup ---
+        window.onload = function() {
+            initChart();
+            if (userToken) {
+                document.getElementById('loginModalOverlay').style.display = 'none';
+                fetchDashboardSummary();
+                fetchSnoreEvents();
+            }
+        };
+
+        async function handleLogin() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const res = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    userToken = data.token;
+                    localStorage.setItem('pillow_token', userToken);
+                    document.getElementById('loginModalOverlay').style.display = 'none';
+                    fetchDashboardSummary();
+                    fetchSnoreEvents();
+                } else {
+                    alert('เข้าสู่ระบบไม่สำเร็จ: ' + data.message);
+                }
+            } catch (err) {
+                alert('ไม่สามารถเชื่อมต่อ Server Backend ได้');
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('pillow_token');
+            location.reload();
+        }
+
+        async function controlNode(nodeId, action) {
+            const node = document.getElementById(`node-${nodeId}`);
+            const status = document.getElementById('airbagStatus');
+            const nodeNames = { tl: 'ซ้ายบน', tr: 'ขวาบน', bl: 'ซ้ายล่าง', br: 'ขวาล่าง' };
+            const apiAction = (action === 'พองลม') ? 'ON' : 'OFF';
+
+            status.innerText = `กำลังส่งคำสั่ง ${action}...`;
+            status.style.color = "#f59e0b";
+
+            try {
+                const res = await fetch(`${API_URL}/control`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify({ device_id: 'pillow-001', zone: nodeId.toUpperCase(), action: apiAction })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    if (action === 'พองลม') {
+                        node.classList.add('inflated');
+                        node.innerText = `${nodeNames[nodeId]} (พอง)`;
+                    } else {
+                        node.classList.remove('inflated');
+                        node.innerText = `${nodeNames[nodeId]}`;
+                    }
+                    status.innerText = "สั่งงานสำเร็จ";
+                    status.style.color = "#4ade80";
+                }
+            } catch (err) {
+                status.innerText = "เกิดข้อผิดพลาด";
+                status.style.color = "#ef4444";
+            }
+        }
+
+        async function toggleAutoMode(element) {
+            try {
+                await fetch(`${API_URL}/settings`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify({ device_id: 'pillow-001', auto_mode: element.checked })
+                });
+            } catch (err) {
+                console.error('Failed to update Auto Mode', err);
+            }
+        }
+
+        function toggleAlarm(cb) {
+            const wake = document.getElementById('wakeTime');
+            wake.disabled = !cb.checked;
+            wake.style.opacity = cb.checked ? "1" : "0.4";
+            calculateDuration();
+        }
+
+        function calculateDuration() {
+            const sleep = document.getElementById('sleepTime').value;
+            const wake = document.getElementById('wakeTime').value;
+            const isAlarmOn = document.getElementById('alarmToggle').checked;
+
+            if (sleep && wake) {
+                let [sH, sM] = sleep.split(':').map(Number);
+                let [wH, wM] = wake.split(':').map(Number);
+                let sDate = new Date(2026, 0, 1, sH, sM);
+                let wDate = new Date(2026, 0, (wH < sH || (wH === sH && wM < sM)) ? 2 : 1, wH, wM);
+
+                let diffMins = Math.floor((wDate - sDate) / (1000 * 60));
+                let hrs = Math.floor(diffMins / 60);
+                let mins = diffMins % 60;
+
+                const alarmText = isAlarmOn ? "(เปิดระบบปลุก)" : "(ปิดระบบปลุก)";
+                document.getElementById('durationDisplay').innerText = `เป้าหมายการนอน: ${hrs} ชั่วโมง ${mins} นาที ${alarmText}`;
+            }
+        }
+
+        function showScoreInfo() {
+            alert("เกณฑ์การคำนวณคะแนนการนอน (เต็ม 100):\n\n1. ระยะเวลานอน (40%): เหมาะสมที่ 7-9 ชั่วโมง\n2. ดัชนีการกรน (40%): ตรวจจับจากระดับเสียง (>55 dB)\n3. ความต่อเนื่องของการนอน (20%): วัดจากจำนวนครั้งที่ถุงลมพองตัวปรับท่านอน");
+        }
+    </script>
+</body>
+</html>
