@@ -10,8 +10,13 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// เปิดใช้งาน Static Folder สำหรับให้บริการไฟล์เสียงกรน (.mp3 / .wav)
+// ให้ Express ชี้ไปที่โฟลเดอร์ public เพื่อแสดงหน้าเว็บ index.html
+app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // คีย์ลับสำหรับสร้าง JWT Token
 const JWT_SECRET = 'my_super_secret_key_123';
