@@ -96,7 +96,7 @@ io.on('connection', (socket) => {
   console.log('⚡ Web Client Connected to Socket.io:', socket.id);
 });
 
-// [ปรับปรุง] บันทึกข้อมูลการกรนลง Database ทันทีที่ได้รับสัญญาณ MQTT จาก ESP32
+// บันทึกข้อมูลการกรนลง Database ทันทีที่ได้รับสัญญาณ MQTT จาก ESP32
 mqttClient.on('message', async (topic, message) => {
   try {
     const data = JSON.parse(message.toString());
@@ -114,7 +114,7 @@ mqttClient.on('message', async (topic, message) => {
       );
       let userId = userResult.rows.length > 0 ? userResult.rows[0].id : null;
 
-      // 2. บันทึกข้อมูลเหตุการณ์การกรนลงฐานข้อมูล (โดยใส่ audio_url เป็น NULL)
+      // 2. บันทึกข้อมูลเหตุการณ์การกรนลงฐานข้อมูล (audio_url เป็น NULL)
       const insertQuery = `
         INSERT INTO snore_events (user_id, device_id, snore_prob, is_inflated, audio_url, created_at)
         VALUES ($1, $2, $3, $4, NULL, NOW())
@@ -127,18 +127,20 @@ mqttClient.on('message', async (topic, message) => {
 
       // 3. ส่งสัญญาณ Realtime ไปแจ้งหน้าเว็บให้รีเฟรชประวัติและกราฟทันที
       io.emit('realtime_snore_event', newLog.rows[0]);
+    } else {
+      // สำหรับ telemetry หรือข้อมูลสถานะเซนเซอร์อื่นๆ
+      io.emit('realtime_sensor_update', {
+        device_id: deviceId,
+        ...data
+      });
     }
-
-    // บรอดแคสต์ข้อมูลสดไปยังผู้ใช้งานผ่าน Socket.io ตามปกติ
-    io.emit('realtime_sensor_update', {
-      device_id: deviceId,
-      ...data
-    });
 
   } catch (err) {
     console.error('❌ Failed to process MQTT message:', err.message);
   }
 });
+
+
 // --- 5. Middleware & Authentication APIs ---
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
