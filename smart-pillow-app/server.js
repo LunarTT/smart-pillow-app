@@ -8,6 +8,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
 
 const app = express();
 const server = http.createServer(app);
@@ -18,19 +19,32 @@ const io = new Server(server, {
 app.use(express.json());
 app.use(cors());
 
-// ตรวจสอบและสร้างโฟลเดอร์ uploads
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+// --- 1. ตั้งค่าโฟลเดอร์สำหรับ Static Files & Uploads ---
+const uploadDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(uploadsDir));
+app.use('/uploads', express.static(uploadDir));
 
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
+// --- 2. ตั้งค่า Multer สำหรับรับไฟล์เสียง WAV ---
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `snore-${uniqueSuffix}.wav`);
+  }
+});
+const upload = multer({ storage: storage });
+
+// --- 3. ตั้งค่าการเชื่อมต่อ Neon Database ---
 const JWT_SECRET = process.env.JWT_SECRET || 'pillow_super_secret_key_2026';
 
 const pool = new Pool({
@@ -38,7 +52,7 @@ const pool = new Pool({
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
-// ปรับปรุงการสร้าง DB Table (ตัด sensor_data ออก)
+// สร้าง Table เริ่มต้น (ใช้ตาราง snore_events เป็นหลัก)
 const initDb = async () => {
   try {
     await pool.query(`
@@ -68,7 +82,7 @@ const initDb = async () => {
 };
 initDb();
 
-// --- MQTT & Socket.io Integration ---
+// --- 4. ระบบ MQTT & Socket.io ---
 const mqttBrokerUrl = 'mqtt://broker.hivemq.com:1883';
 const mqttClient = mqtt.connect(mqttBrokerUrl);
 
@@ -90,7 +104,7 @@ mqttClient.on('message', async (topic, message) => {
     // ส่งข้อมูลแบบ Real-time ไปหน้าเว็บผ่าน Socket.io
     io.emit('realtime_sensor_update', data);
 
-    // ค้นหา User ID จาก device_id แล้วบันทึกเฉพาะ snore_events ลง Neon DB
+    // ค้นหา User ID จาก device_id แล้วบันทึกลง snore_events
     const userRes = await pool.query('SELECT id FROM users WHERE device_id = $1 LIMIT 1', [deviceId]);
     const userId = userRes.rows.length > 0 ? userRes.rows[0].id : (data.user_id || 1);
 
@@ -105,7 +119,7 @@ mqttClient.on('message', async (topic, message) => {
   }
 });
 
-// Middleware & Auth APIs
+// --- 5. Middleware & Authentication APIs ---
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -168,7 +182,7 @@ app.post('/api/user/pair-device', authenticateToken, async (req, res) => {
   }
 });
 
-// API Dashboard Summary (ตัดเซนเซอร์สภาพแวดล้อมออก เหลือเฉพาะข้อมูลสถิติการกรน)
+// --- 6. REST APIs สำหรับ Web App & Dashboard ---
 app.get('/api/dashboard/summary', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -237,6 +251,49 @@ app.post('/api/control', authenticateToken, async (req, res) => {
   });
 });
 
+// --- 7. Endpoint รับอัปโหลดไฟล์เสียง WAV จาก ESP32 ---
+app.post('/api/upload-audio', upload.single('audio'), async (req, res) => {
+  try {
+    const { device_id, snore_prob, is_inflated } = req.body;
+    const audioFile = req.file;
+
+    if (!audioFile) {
+      return res.status(400).json({ error: 'No audio file uploaded' });
+    }
+
+    const audioUrl = `/uploads/${audioFile.filename}`;
+
+    // 1. ค้นหา user_id จาก device_id ในตาราง users
+    const userResult = await pool.query(
+      'SELECT id FROM users WHERE device_id = $1 LIMIT 1',
+      [device_id]
+    );
+
+    let userId = userResult.rows.length > 0 ? userResult.rows[0].id : null;
+
+    // 2. บันทึกข้อมูลการกรน + URL ไฟล์เสียงลงตาราง snore_events ใน Neon DB
+    const insertQuery = `
+      INSERT INTO snore_events (user_id, device_id, snore_prob, is_inflated, audio_url, created_at)
+      VALUES ($1, $2, $3, $4, $5, NOW())
+      RETURNING *
+    `;
+    const values = [userId, device_id, parseInt(snore_prob, 10), is_inflated === 'true', audioUrl];
+    const newLog = await pool.query(insertQuery, values);
+
+    console.log(`✅ [Audio Uploaded] Device: ${device_id}, Path: ${audioUrl}`);
+    
+    // แจ้งเตือนหน้าเว็บผ่าน Socket.io ทันทีที่มีไฟล์เสียงใหม่ถูกอัปโหลด
+    io.emit('realtime_snore_event', newLog.rows[0]);
+
+    res.status(200).json({ success: true, log: newLog.rows[0] });
+
+  } catch (error) {
+    console.error('❌ Upload error:', error.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// --- 8. เริ่มการทำงานของ Server ---
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Web & Socket Server is running on port ${PORT}`);
