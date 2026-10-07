@@ -925,6 +925,8 @@
         }
 
         async function fetchDashboardSummary() {
+            if (!userToken) return;
+
             try {
                 const res = await fetch(`${API_URL}/dashboard/summary`, {
                     headers: { 'Authorization': `Bearer ${userToken}` }
@@ -942,14 +944,11 @@
                         descElem.innerText = 'ยังไม่มีข้อมูลการนอนหลับ';
                     }
 
-                    if (snoreChart) {
-                        if (data.chartData && data.chartData.length > 0) {
-                            snoreChart.data.labels = data.chartLabels || [];
-                            snoreChart.data.datasets[0].data = data.chartData;
-                        } else {
-                            snoreChart.data.labels = ['ไม่มีข้อมูล'];
-                            snoreChart.data.datasets[0].data = [0];
-                        }
+                    if (snoreChart && Array.isArray(data.chartData)) {
+                        snoreChart.data.labels = data.chartData.length > 0
+                            ? (Array.isArray(data.chartLabels) ? data.chartLabels : [])
+                            : ['ไม่มีข้อมูล'];
+                        snoreChart.data.datasets[0].data = data.chartData.length > 0 ? data.chartData : [0];
                         snoreChart.update();
                     }
                 }
@@ -959,41 +958,65 @@
         }
 
         async function fetchSnoreEvents() {
+            if (!userToken) return;
+
             try {
                 const selectedDate = document.getElementById('historyDate').value;
-                const query = selectedDate ? `?date=${selectedDate}` : '';
+                const query = selectedDate ? `?${new URLSearchParams({ date: selectedDate })}` : '';
                 const res = await fetch(`${API_URL}/snore-events${query}`, {
                     headers: { 'Authorization': `Bearer ${userToken}` }
                 });
                 const data = await res.json();
-
-                const logContainer = document.getElementById('snoreLogList');
-                logContainer.innerHTML = '';
-
-                if (data.success && data.data && data.data.length > 0) {
-                    data.data.forEach((item, index) => {
-                        const timeStr = new Date(item.created_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-                        const logHTML = `
-                            <div class="log-item">
-                                <div class="log-info">
-                                    <span>ครั้งที่ ${data.data.length - index} (เวลา ${timeStr} น.)</span>
-                                    <small>ความน่าจะเป็น AI: ${item.snore_prob}% | ถุงลม: ${item.is_inflated ? 'พองลม' : 'ปกติ'}</small>
-                                </div>
-                                <button class="play-btn" onclick="openAudioModal('${timeStr}', 'ความน่าจะเป็น AI ${item.snore_prob}%', '${item.audio_url || ''}')">
-                                    <i class="fa-solid fa-waveform"></i> ฟังเสียง
-                                </button>
-                            </div>
-                        `;
-                        logContainer.innerHTML += logHTML;
-                    });
-                    document.getElementById('histSnoreCount').innerText = `${data.data.length} ครั้ง`;
-                } else {
-                    logContainer.innerHTML = '<p style="text-align:center; font-size:0.8rem; color: var(--text-secondary); padding: 10px;">ไม่มีประวัติการกรนสำหรับวันที่เลือก</p>';
-                    document.getElementById('histSnoreCount').innerText = '0 ครั้ง';
-                }
+                if (data.success) renderSnoreList(Array.isArray(data.data) ? data.data : []);
             } catch (err) {
                 console.error('Failed to fetch snore events:', err);
             }
+        }
+
+        function renderSnoreList(events) {
+            const logContainer = document.getElementById('snoreLogList');
+            if (!logContainer) return;
+
+            logContainer.replaceChildren();
+            document.getElementById('histSnoreCount').innerText = `${events.length} ครั้ง`;
+
+            if (events.length === 0) {
+                const emptyMessage = document.createElement('p');
+                emptyMessage.style.cssText = 'text-align:center; font-size:0.8rem; color: var(--text-secondary); padding: 10px;';
+                emptyMessage.textContent = 'ไม่มีประวัติการกรนสำหรับวันที่เลือก';
+                logContainer.appendChild(emptyMessage);
+                return;
+            }
+
+            events.forEach((event, index) => {
+                const timeStr = new Date(event.created_at).toLocaleTimeString('th-TH', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                const item = document.createElement('div');
+                item.className = 'log-item';
+
+                const info = document.createElement('div');
+                info.className = 'log-info';
+
+                const time = document.createElement('span');
+                time.textContent = `ครั้งที่ ${events.length - index} (เวลา ${timeStr} น.)`;
+
+                const details = document.createElement('small');
+                details.textContent = `ความน่าจะเป็น AI: ${event.snore_prob}% | ถุงลม: ${event.is_inflated ? 'พองลม' : 'ปกติ'}`;
+                info.append(time, details);
+
+                const playButton = document.createElement('button');
+                playButton.className = 'play-btn';
+                playButton.type = 'button';
+                playButton.innerHTML = '<i class="fa-solid fa-waveform"></i> ฟังเสียง';
+                playButton.addEventListener('click', () => {
+                    openAudioModal(timeStr, `ความน่าจะเป็น AI ${event.snore_prob}%`, event.audio_url || '');
+                });
+
+                item.append(info, playButton);
+                logContainer.appendChild(item);
+            });
         }
 
         // Control 3 Airbag Zones (left, center, right)
