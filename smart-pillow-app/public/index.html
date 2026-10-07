@@ -9,9 +9,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- WaveSurfer.js สำหรับเล่นเสียงและแสดง Waveform จริง -->
+    <!-- WaveSurfer.js -->
     <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
-    <!-- แท็กเรียกใช้ Socket.io Client -->
+    <!-- Socket.io Client -->
     <script src="/socket.io/socket.io.js"></script>
     
     <style>
@@ -137,14 +137,6 @@
 
         .chart-wrapper { width: 100%; height: 110px; margin-top: 4px; }
 
-        .env-grid { display: flex; justify-content: space-around; width: 100%; margin-top: 10px; }
-        .env-box { display: flex; flex-direction: column; align-items: center; }
-        .env-box i { font-size: 1.2rem; margin-bottom: 2px; }
-        .env-box.temp i { color: #f97316; }
-        .env-box.humid i { color: #38bdf8; }
-        .env-value { font-size: 1.25rem; font-weight: 600; color: #ffffff; }
-        .env-label { font-size: 0.68rem; color: #f3e8ff; }
-
         /* Time Setup */
         .time-setup-card {
             background: var(--bg-card); padding: 14px; border-radius: 16px;
@@ -177,7 +169,7 @@
         input:checked + .slider-mini { background-color: #38bdf8; }
         input:checked + .slider-mini:before { transform: translateX(16px); }
 
-        /* Airbag & Pillow */
+        /* Airbag & Pillow (3-Zone) */
         .airbag-control-card {
             background: var(--bg-card); border-radius: 20px; padding: 16px;
             border: 1px solid var(--border-color);
@@ -185,12 +177,12 @@
         .airbag-title { font-size: 0.85rem; color: var(--text-primary); margin-bottom: 12px; display: flex; justify-content: space-between; }
 
         .pillow-frame {
-            position: relative; width: 100%; height: 110px;
+            position: relative; width: 100%; height: 100px;
             background: linear-gradient(145deg, #1e293b, #0f172a);
-            border-radius: 35px 35px 25px 25px; border: 2px solid #38bdf8;
+            border-radius: 25px; border: 2px solid #38bdf8;
             box-shadow: inset 0 0 15px rgba(56, 189, 248, 0.2);
             margin-bottom: 14px; display: grid;
-            grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             padding: 10px; gap: 8px;
         }
 
@@ -201,32 +193,32 @@
 
         .airbag-node {
             background: rgba(255, 255, 255, 0.05);
-            border: 1.5px dashed var(--text-secondary); border-radius: 16px;
+            border: 1.5px dashed var(--text-secondary); border-radius: 14px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 0.65rem; color: var(--text-secondary);
+            font-size: 0.75rem; color: var(--text-secondary);
             transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         .airbag-node.inflated {
             background: radial-gradient(circle, #38bdf8 0%, #0284c7 100%);
             color: #ffffff; font-weight: 600; border-style: solid;
-            border-color: #bae6fd; transform: scale(1.04);
+            border-color: #bae6fd; transform: scale(1.03);
             box-shadow: 0 0 14px rgba(56, 189, 248, 0.7);
         }
 
-        .airbag-grid-4 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .airbag-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 
         .airbag-zone-box {
             background: var(--bg-subcard); padding: 8px; border-radius: 12px;
             text-align: center; border: 1px solid var(--border-color);
-            display: flex; flex-direction: column; gap: 4px;
+            display: flex; flex-direction: column; gap: 6px;
         }
 
-        .airbag-zone-box span { font-size: 0.7rem; color: var(--text-primary); font-weight: 500; }
-        .btn-row { display: flex; gap: 6px; }
+        .airbag-zone-box span { font-size: 0.72rem; color: var(--text-primary); font-weight: 500; }
+        .btn-row { display: flex; flex-direction: column; gap: 4px; }
 
         .zone-btn {
-            flex: 1; padding: 5px 0; border-radius: 6px; border: none;
+            width: 100%; padding: 6px 0; border-radius: 6px; border: none;
             font-size: 0.65rem; font-weight: 500; cursor: pointer; transition: 0.2s;
         }
 
@@ -334,7 +326,7 @@
         .nav-item span { font-size: 0.65rem; }
         .nav-item.active { color: #38bdf8; }
 
-        /* ================= AUDIO WAVEFORM MODAL PLAYER ================= */
+        /* AUDIO WAVEFORM MODAL PLAYER */
         .audio-modal-overlay {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(15, 23, 42, 0.95);
@@ -478,30 +470,6 @@
 
         <!-- TAB 1: HOME -->
         <div class="tab-content active" id="tab-home">
-            <!-- Card ข้อมูลอุปกรณ์ ESP32 และการจับคู่หมอน (อยู่นอก Carousel) -->
-            <div class="device-card">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h3 style="margin: 0; font-size: 0.95rem; color: var(--text-secondary);">📱 หมอนอัจฉริยะที่เชื่อมต่อ</h3>
-                        <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
-                            <span id="displayDeviceId" style="font-size: 1.3rem; font-weight: bold; color: #38bdf8;">pillow-001</span>
-                            <span id="deviceStatusBadge" style="background: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; border: 1px solid rgba(34, 197, 94, 0.3);">● Online</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <hr style="border-color: var(--border-color); margin: 12px 0;">
-                
-                <!-- ฟอร์มเปลี่ยน / จับคู่รหัสหมอนใหม่ -->
-                <div style="display: flex; gap: 8px; align-items: center;">
-                    <input type="text" id="pairDeviceIdInput" placeholder="กรอกรหัสหมอน เช่น pillow-002" 
-                           style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-subcard); color: var(--text-primary); font-size: 0.8rem; outline: none;">
-                    <button onclick="handlePairDevice()" 
-                            style="padding: 8px 14px; border-radius: 8px; border: none; background: #0284c7; color: #fff; font-weight: 500; cursor: pointer; font-size: 0.8rem;">
-                        ผูกหมอนใหม่
-                    </button>
-                </div>
-            </div>
 
             <div class="carousel-card">
                 <button class="carousel-nav-btn prev-btn" onclick="moveCarousel(-1)"><i class="fa-solid fa-chevron-left"></i></button>
@@ -525,27 +493,8 @@
                     </div>
                 </div>
 
-                <div class="carousel-page">
-                    <div class="score-title">
-                        <span><i class="fa-solid fa-house-medical"></i> สภาพแวดล้อมห้องนอน</span>
-                    </div>
-                    <div class="env-grid">
-                        <div class="env-box temp">
-                            <i class="fa-solid fa-temperature-half"></i>
-                            <div class="env-value" id="tempValue">-- °C</div>
-                            <div class="env-label">อุณหภูมิห้อง</div>
-                        </div>
-                        <div class="env-box humid">
-                            <i class="fa-solid fa-droplet"></i>
-                            <div class="env-value" id="humidValue">-- %</div>
-                            <div class="env-label">ความชื้นสัมพัทธ์</div>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="carousel-dots">
                     <div class="dot active"></div>
-                    <div class="dot"></div>
                     <div class="dot"></div>
                 </div>
             </div>
@@ -587,46 +536,39 @@
                 </label>
             </div>
 
+            <!-- ส่วนควบคุมถุงลม 3 โซน (ซ้าย กลาง ขวา) -->
             <div class="airbag-control-card">
                 <div class="airbag-title">
-                    <span>ควบคุมถุงลม 4 โซน (4-Zone Matrix)</span>
+                    <span>ควบคุมถุงลม 3 โซน (3-Zone Airbag)</span>
                     <small id="airbagStatus" style="color: #38bdf8;">พร้อมใช้งาน</small>
                 </div>
 
                 <div class="pillow-frame">
-                    <div class="airbag-node" id="node-tl">ซ้ายบน</div>
-                    <div class="airbag-node" id="node-tr">ขวาบน</div>
-                    <div class="airbag-node" id="node-bl">ซ้ายล่าง (คอ)</div>
-                    <div class="airbag-node" id="node-br">ขวาล่าง (คอ)</div>
+                    <div class="airbag-node" id="node-left">ซ้าย</div>
+                    <div class="airbag-node" id="node-center">กลาง</div>
+                    <div class="airbag-node" id="node-right">ขวา</div>
                 </div>
 
-                <div class="airbag-grid-4">
+                <div class="airbag-grid-3">
                     <div class="airbag-zone-box">
-                        <span>ซ้ายบน</span>
+                        <span>ฝั่งซ้าย</span>
                         <div class="btn-row">
-                            <button class="zone-btn btn-inflate" onclick="controlNode('tl', 'พองลม')">+ พอง</button>
-                            <button class="zone-btn btn-deflate" onclick="controlNode('tl', 'ยุบลม')">- ยุบ</button>
+                            <button class="zone-btn btn-inflate" onclick="controlNode('left', 'พองลม')">+ พอง</button>
+                            <button class="zone-btn btn-deflate" onclick="controlNode('left', 'ยุบลม')">- ยุบ</button>
                         </div>
                     </div>
                     <div class="airbag-zone-box">
-                        <span>ขวาบน</span>
+                        <span>ตรงกลาง</span>
                         <div class="btn-row">
-                            <button class="zone-btn btn-inflate" onclick="controlNode('tr', 'พองลม')">+ พอง</button>
-                            <button class="zone-btn btn-deflate" onclick="controlNode('tr', 'ยุบลม')">- ยุบ</button>
+                            <button class="zone-btn btn-inflate" onclick="controlNode('center', 'พองลม')">+ พอง</button>
+                            <button class="zone-btn btn-deflate" onclick="controlNode('center', 'ยุบลม')">- ยุบ</button>
                         </div>
                     </div>
                     <div class="airbag-zone-box">
-                        <span>ซ้ายล่าง (รองคอ)</span>
+                        <span>ฝั่งขวา</span>
                         <div class="btn-row">
-                            <button class="zone-btn btn-inflate" onclick="controlNode('bl', 'พองลม')">+ พอง</button>
-                            <button class="zone-btn btn-deflate" onclick="controlNode('bl', 'ยุบลม')">- ยุบ</button>
-                        </div>
-                    </div>
-                    <div class="airbag-zone-box">
-                        <span>ขวาล่าง (รองคอ)</span>
-                        <div class="btn-row">
-                            <button class="zone-btn btn-inflate" onclick="controlNode('br', 'พองลม')">+ พอง</button>
-                            <button class="zone-btn btn-deflate" onclick="controlNode('br', 'ยุบลม')">- ยุบ</button>
+                            <button class="zone-btn btn-inflate" onclick="controlNode('right', 'พองลม')">+ พอง</button>
+                            <button class="zone-btn btn-deflate" onclick="controlNode('right', 'ยุบลม')">- ยุบ</button>
                         </div>
                     </div>
                 </div>
@@ -674,6 +616,30 @@
 
         <!-- TAB 3: SETTINGS -->
         <div class="tab-content" id="tab-settings">
+            
+            <div class="device-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="margin: 0; font-size: 0.95rem; color: var(--text-secondary);">📱 หมอนอัจฉริยะที่เชื่อมต่อ</h3>
+                        <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px;">
+                            <span id="displayDeviceId" style="font-size: 1.3rem; font-weight: bold; color: #38bdf8;">pillow-001</span>
+                            <span id="deviceStatusBadge" style="background: rgba(34, 197, 94, 0.2); color: #4ade80; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; border: 1px solid rgba(34, 197, 94, 0.3);">● Online</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr style="border-color: var(--border-color); margin: 12px 0;">
+                
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="text" id="pairDeviceIdInput" placeholder="กรอกรหัสหมอน เช่น pillow-002" 
+                           style="flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-subcard); color: var(--text-primary); font-size: 0.8rem; outline: none;">
+                    <button onclick="handlePairDevice()" 
+                            style="padding: 8px 14px; border-radius: 8px; border: none; background: #0284c7; color: #fff; font-weight: 500; cursor: pointer; font-size: 0.8rem;">
+                        ผูกหมอนใหม่
+                    </button>
+                </div>
+            </div>
+
             <div class="settings-group">
                 <div class="settings-group-title"><i class="fa-solid fa-microchip"></i> ฮาร์ดแวร์และการเชื่อมต่อ</div>
                 <div class="setting-row">
@@ -769,16 +735,13 @@
         let wavesurfer = null;
         let snoreChart = null;
 
-        // --- Helper: Get Current User Device ID ---
         function getCurrentDeviceId() {
             const userData = JSON.parse(localStorage.getItem('pillow_user') || '{}');
             return userData.device_id || 'pillow-001';
         }
 
-        // --- Initial Start ---
         document.addEventListener('DOMContentLoaded', () => {
             initChart();
-            // ตั้งค่าวันที่ปัจจุบันลงใน History Date Picker
             const todayStr = new Date().toISOString().split('T')[0];
             const historyDateInput = document.getElementById('historyDate');
             if (historyDateInput) historyDateInput.value = todayStr;
@@ -791,7 +754,6 @@
             }
         });
 
-        // --- Navigation Tabs & Theme ---
         function switchTab(tabName, navElement) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
@@ -805,7 +767,6 @@
             icon.className = document.body.classList.contains('light-mode') ? 'fa-solid fa-moon' : 'fa-solid fa-sun';
         }
 
-        // --- Auth Mode Switching ---
         function toggleAuthMode(mode) {
             document.getElementById('loginForm').style.display = mode === 'register' ? 'none' : 'block';
             document.getElementById('registerForm').style.display = mode === 'register' ? 'block' : 'none';
@@ -880,7 +841,6 @@
             location.reload();
         }
 
-        // --- Device Pairing ---
         function loadDeviceInfo() {
             const currentDevId = getCurrentDeviceId();
             const displayElem = document.getElementById('displayDeviceId');
@@ -921,7 +881,7 @@
             }
         }
 
-        // --- Carousel Logic ---
+        // Carousel Logic (2 pages)
         let currentSlide = 0;
         const pages = document.querySelectorAll('.carousel-page');
         const dots = document.querySelectorAll('.dot');
@@ -941,7 +901,6 @@
             showSlide(next);
         }
 
-        // --- Init Chart.js ---
         function initChart() {
             const ctx = document.getElementById('snoreLineChart').getContext('2d');
             snoreChart = new Chart(ctx, {
@@ -956,7 +915,7 @@
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { labels: { color: '#e0e7ff', font: { size: 9 } } } },
+                    plugins: { legend: { labels: { color: '#e0e0e0', font: { size: 9 } } } },
                     scales: {
                         x: { ticks: { color: '#94a3b8', font: { size: 8 } } },
                         y: { min: 0, max: 100, ticks: { color: '#94a3b8', font: { size: 8 } } }
@@ -965,7 +924,6 @@
             });
         }
 
-        // --- Fetch Dashboard Summary ---
         async function fetchDashboardSummary() {
             try {
                 const res = await fetch(`${API_URL}/dashboard/summary`, {
@@ -984,9 +942,6 @@
                         descElem.innerText = 'ยังไม่มีข้อมูลการนอนหลับ';
                     }
 
-                    document.getElementById('tempValue').innerText = (data.temp !== null && data.temp !== undefined) ? `${data.temp} °C` : '-- °C';
-                    document.getElementById('humidValue').innerText = (data.humid !== null && data.humid !== undefined) ? `${data.humid} %` : '-- %';
-
                     if (snoreChart) {
                         if (data.chartData && data.chartData.length > 0) {
                             snoreChart.data.labels = data.chartLabels || [];
@@ -1003,7 +958,6 @@
             }
         }
 
-        // --- Fetch Snore History ---
         async function fetchSnoreEvents() {
             try {
                 const selectedDate = document.getElementById('historyDate').value;
@@ -1042,11 +996,11 @@
             }
         }
 
-        // --- Control Airbag & Mode ---
+        // Control 3 Airbag Zones (left, center, right)
         async function controlNode(nodeId, action) {
             const node = document.getElementById(`node-${nodeId}`);
             const status = document.getElementById('airbagStatus');
-            const nodeNames = { tl: 'ซ้ายบน', tr: 'ขวาบน', bl: 'ซ้ายล่าง', br: 'ขวาล่าง' };
+            const nodeNames = { left: 'ซ้าย', center: 'กลาง', right: 'ขวา' };
             const apiAction = (action === 'พองลม') ? 'ON' : 'OFF';
 
             status.innerText = `กำลังส่งคำสั่ง ${action}...`;
@@ -1136,7 +1090,6 @@
             alert("เกณฑ์การคำนวณคะแนนการนอน (เต็ม 100):\n\n1. ระยะเวลานอน (40%): เหมาะสมที่ 7-9 ชั่วโมง\n2. ดัชนีการกรน (40%): ตรวจจับจากระดับเสียง (>55 dB)\n3. ความต่อเนื่องของการนอน (20%): วัดจากจำนวนครั้งที่ถุงลมพองตัวปรับท่านอน");
         }
 
-        // --- WaveSurfer Audio Player ---
         function initWaveSurfer() {
             if (!wavesurfer) {
                 wavesurfer = WaveSurfer.create({
@@ -1199,7 +1152,6 @@
             document.getElementById('audioModal').style.display = 'none';
         }
 
-        // --- Export & Reset ---
         async function exportData() {
             try {
                 const res = await fetch(`${API_URL}/snore-events`, {
@@ -1249,23 +1201,13 @@
             }
         }
 
-        // สคริปต์เชื่อมต่อ Socket.io
+        // Socket.io Realtime Listener
         const socket = io();
 
         socket.on('realtime_sensor_update', (data) => {
-            // ตรวจสอบว่าเป็นข้อมูลของหมอนอันที่เราใช้อยู่หรือไม่
             const currentDevId = getCurrentDeviceId();
             if (data.device_id && data.device_id !== currentDevId) return;
 
-            // อัปเดตอุณหภูมิและความชื้นแบบทันทีทันใด
-            if (data.temperature !== undefined) {
-                document.getElementById('tempValue').innerText = `${data.temperature} °C`;
-            }
-            if (data.humidity !== undefined) {
-                document.getElementById('humidValue').innerText = `${data.humidity} %`;
-            }
-
-            // หากมีการกรนเกิดขึ้น ให้สั่งรีเฟรชกราฟและประวัติอัตโนมัติ
             if (data.snore_prob !== undefined) {
                 fetchDashboardSummary();
                 fetchSnoreEvents();
