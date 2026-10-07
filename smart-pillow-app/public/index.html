@@ -97,7 +97,6 @@
         .tab-content { display: none; padding: 16px; flex-direction: column; gap: 16px; }
         .tab-content.active { display: flex; }
 
-        /* Device Card */
         .device-card {
             background: var(--bg-card);
             border-radius: 16px;
@@ -106,7 +105,6 @@
             color: var(--text-primary);
         }
 
-        /* Carousel Card */
         .carousel-card {
             background: var(--carousel-bg); border-radius: 20px;
             padding: 18px 16px; border: 1px solid rgba(255,255,255,0.1);
@@ -169,61 +167,23 @@
         input:checked + .slider-mini { background-color: #38bdf8; }
         input:checked + .slider-mini:before { transform: translateX(16px); }
 
-        /* Airbag & Pillow (3-Zone) */
+        /* Airbag Control Card Style */
         .airbag-control-card {
-            background: var(--bg-card); border-radius: 20px; padding: 16px;
-            border: 1px solid var(--border-color);
+            background: var(--bg-card); border-radius: 16px; padding: 16px;
+            border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 12px;
         }
-        .airbag-title { font-size: 0.85rem; color: var(--text-primary); margin-bottom: 12px; display: flex; justify-content: space-between; }
-
-        .pillow-frame {
-            position: relative; width: 100%; height: 100px;
-            background: linear-gradient(145deg, #1e293b, #0f172a);
-            border-radius: 25px; border: 2px solid #38bdf8;
-            box-shadow: inset 0 0 15px rgba(56, 189, 248, 0.2);
-            margin-bottom: 14px; display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            padding: 10px; gap: 8px;
+        .airbag-title { font-size: 0.85rem; font-weight: 600; color: #38bdf8; display: flex; align-items: center; gap: 6px; }
+        .airbag-btn-grid { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 8px; }
+        
+        .action-btn {
+            flex: 1; min-width: 90px; padding: 10px; border-radius: 10px; border: none;
+            font-family: 'Kanit', sans-serif; font-size: 0.78rem; font-weight: 500; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 6px; transition: 0.2s;
         }
-
-        body.light-mode .pillow-frame {
-            background: linear-gradient(145deg, #ffffff, #e2e8f0);
-            border-color: #0284c7; box-shadow: inset 0 0 15px rgba(2, 132, 199, 0.1);
-        }
-
-        .airbag-node {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1.5px dashed var(--text-secondary); border-radius: 14px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 0.75rem; color: var(--text-secondary);
-            transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        .airbag-node.inflated {
-            background: radial-gradient(circle, #38bdf8 0%, #0284c7 100%);
-            color: #ffffff; font-weight: 600; border-style: solid;
-            border-color: #bae6fd; transform: scale(1.03);
-            box-shadow: 0 0 14px rgba(56, 189, 248, 0.7);
-        }
-
-        .airbag-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-
-        .airbag-zone-box {
-            background: var(--bg-subcard); padding: 8px; border-radius: 12px;
-            text-align: center; border: 1px solid var(--border-color);
-            display: flex; flex-direction: column; gap: 6px;
-        }
-
-        .airbag-zone-box span { font-size: 0.72rem; color: var(--text-primary); font-weight: 500; }
-        .btn-row { display: flex; flex-direction: column; gap: 4px; }
-
-        .zone-btn {
-            width: 100%; padding: 6px 0; border-radius: 6px; border: none;
-            font-size: 0.65rem; font-weight: 500; cursor: pointer; transition: 0.2s;
-        }
-
-        .btn-inflate { background: #0284c7; color: white; }
-        .btn-deflate { background: var(--border-color); color: var(--text-secondary); }
+        .action-btn-inflate { background: #0284c7; color: white; }
+        .action-btn-deflate { background: #d97706; color: white; }
+        .action-btn-stop { background: #475569; color: white; }
+        .action-btn:hover { opacity: 0.9; }
 
         .toggle-card {
             background: var(--bg-card); padding: 12px 14px; border-radius: 16px;
@@ -536,41 +496,23 @@
                 </label>
             </div>
 
-            <!-- ส่วนควบคุมถุงลม 3 โซน (ซ้าย กลาง ขวา) -->
+            <!-- Airbag Control Card (ปรับปรุง CSS ให้สวยงามและตรงกับ Theme) -->
             <div class="airbag-control-card">
                 <div class="airbag-title">
-                    <span>ควบคุมถุงลม 3 โซน (3-Zone Airbag)</span>
-                    <small id="airbagStatus" style="color: #38bdf8;">พร้อมใช้งาน</small>
+                    <span><i class="fa-solid fa-wind"></i> ควบคุมถุงลมหมอน</span>
                 </div>
-
-                <div class="pillow-frame">
-                    <div class="airbag-node" id="node-left">ซ้าย</div>
-                    <div class="airbag-node" id="node-center">กลาง</div>
-                    <div class="airbag-node" id="node-right">ขวา</div>
-                </div>
-
-                <div class="airbag-grid-3">
-                    <div class="airbag-zone-box">
-                        <span>ฝั่งซ้าย</span>
-                        <div class="btn-row">
-                            <button class="zone-btn btn-inflate" onclick="controlNode('left', 'พองลม')">+ พอง</button>
-                            <button class="zone-btn btn-deflate" onclick="controlNode('left', 'ยุบลม')">- ยุบ</button>
-                        </div>
-                    </div>
-                    <div class="airbag-zone-box">
-                        <span>ตรงกลาง</span>
-                        <div class="btn-row">
-                            <button class="zone-btn btn-inflate" onclick="controlNode('center', 'พองลม')">+ พอง</button>
-                            <button class="zone-btn btn-deflate" onclick="controlNode('center', 'ยุบลม')">- ยุบ</button>
-                        </div>
-                    </div>
-                    <div class="airbag-zone-box">
-                        <span>ฝั่งขวา</span>
-                        <div class="btn-row">
-                            <button class="zone-btn btn-inflate" onclick="controlNode('right', 'พองลม')">+ พอง</button>
-                            <button class="zone-btn btn-deflate" onclick="controlNode('right', 'ยุบลม')">- ยุบ</button>
-                        </div>
-                    </div>
+                <p style="font-size: 0.72rem; color: var(--text-secondary); text-align: center;">สั่งงานปั๊มและวาล์วระบายลมเพื่อปรับระดับความสูงของหมอน</p>
+                
+                <div class="airbag-btn-grid">
+                    <button class="action-btn action-btn-inflate" onclick="controlAirbag('INFLATE')">
+                        <i class="fa-solid fa-arrow-up"></i> พองทั้งหมด
+                    </button>
+                    <button class="action-btn action-btn-deflate" onclick="controlAirbag('DEFLATE')">
+                        <i class="fa-solid fa-arrow-down"></i> ยุบทั้งหมด
+                    </button>
+                    <button class="action-btn action-btn-stop" onclick="controlAirbag('STOP')">
+                        <i class="fa-solid fa-circle-stop"></i> หยุดทำงาน
+                    </button>
                 </div>
             </div>
         </div>
@@ -674,7 +616,7 @@
 
             <div class="settings-group">
                 <div class="settings-group-title"><i class="fa-solid fa-database"></i> จัดการข้อมูล</div>
-                <button class="zone-btn btn-inflate" style="padding: 10px; font-size: 0.8rem;" onclick="exportData()">
+                <button class="action-btn action-btn-inflate" style="width: 100%; padding: 10px; font-size: 0.8rem;" onclick="exportData()">
                     <i class="fa-solid fa-file-csv"></i> ส่งออกรายงานการนอน (CSV Export)
                 </button>
                 <button class="btn-danger" onclick="resetData()">
@@ -742,6 +684,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             initChart();
+            calculateDuration(); // คำนวณเป้าหมายการนอนทันทีตอนเริ่ม
             const todayStr = new Date().toISOString().split('T')[0];
             const historyDateInput = document.getElementById('historyDate');
             if (historyDateInput) historyDateInput.value = todayStr;
@@ -1019,48 +962,34 @@
             });
         }
 
-        // Control 3 Airbag Zones (left, center, right)
-        async function controlNode(nodeId, action) {
-            const node = document.getElementById(`node-${nodeId}`);
-            const status = document.getElementById('airbagStatus');
-            const nodeNames = { left: 'ซ้าย', center: 'กลาง', right: 'ขวา' };
-            const apiAction = (action === 'พองลม') ? 'ON' : 'OFF';
-
-            status.innerText = `กำลังส่งคำสั่ง ${action}...`;
-            status.style.color = "#f59e0b";
+        /* แก้ไขฟังก์ชันควบคุมถุงลม ให้ใช้ userToken และ API_URL แบบถูกต้อง */
+        async function controlAirbag(action) {
+            if (!userToken) {
+                alert('กรุณาล็อกอินก่อนใช้งาน');
+                return;
+            }
 
             try {
-                const res = await fetch(`${API_URL}/control`, {
+                const response = await fetch(`${API_URL}/airbag/command`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${userToken}`
                     },
-                    body: JSON.stringify({ 
-                        device_id: getCurrentDeviceId(), 
-                        zone: nodeId.toUpperCase(), 
-                        action: apiAction 
-                    })
+                    body: JSON.stringify({ action: action })
                 });
-                const data = await res.json();
 
-                if (data.success) {
-                    if (action === 'พองลม') {
-                        node.classList.add('inflated');
-                        node.innerText = `${nodeNames[nodeId]} (พอง)`;
-                    } else {
-                        node.classList.remove('inflated');
-                        node.innerText = `${nodeNames[nodeId]}`;
-                    }
-                    status.innerText = "สั่งงานสำเร็จ";
-                    status.style.color = "#4ade80";
+                const data = await response.json();
+
+                if (response.ok) {
+                    const actionText = action === 'INFLATE' ? 'พองลม' : action === 'DEFLATE' ? 'ยุบลม' : 'หยุดทำงาน';
+                    console.log(`สั่งงานสำเร็จ: ${actionText}`);
                 } else {
-                    status.innerText = "สั่งงานล้มเหลว";
-                    status.style.color = "#ef4444";
+                    alert(`เกิดข้อผิดพลาด: ${data.message || 'ไม่สามารถสั่งงานได้'}`);
                 }
-            } catch (err) {
-                status.innerText = "เกิดข้อผิดพลาด";
-                status.style.color = "#ef4444";
+            } catch (error) {
+                console.error('Error controlling airbag:', error);
+                alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
             }
         }
 
