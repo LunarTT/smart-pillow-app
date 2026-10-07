@@ -96,22 +96,49 @@ io.on('connection', (socket) => {
   console.log('⚡ Web Client Connected to Socket.io:', socket.id);
 });
 
-// [ปรับปรุงจุดนี้] ทำหน้าที่ส่งข้อมูล Realtime ไปยัง Dashboard ผ่าน Socket.io เท่านั้น (ไม่บันทึกซ้ำลง DB)
+// [ปรับปรุง] บันทึกข้อมูลการกรนลง Database ทันทีที่ได้รับสัญญาณ MQTT จาก ESP32
 mqttClient.on('message', async (topic, message) => {
   try {
     const data = JSON.parse(message.toString());
     const deviceId = data.device_id || 'pillow-001';
 
-    // บรอดแคสต์ข้อมูลสดไปยังผู้ใช้งานผ่าน Socket.io
+    // ตรวจสอบว่าเป็น Topic แจ้งเตือนเหตุการณ์การกรนหรือไม่
+    if (topic.endsWith('/snore')) {
+      const snoreProb = parseInt(data.snore_prob, 10) || 0;
+      const isInflated = data.is_inflated === true || data.is_inflated === 'true';
+
+      // 1. ค้นหา user_id ที่ผูกกับ device_id นี้ในตาราง users
+      const userResult = await pool.query(
+        'SELECT id FROM users WHERE device_id = $1 LIMIT 1',
+        [deviceId]
+      );
+      let userId = userResult.rows.length > 0 ? userResult.rows[0].id : null;
+
+      // 2. บันทึกข้อมูลเหตุการณ์การกรนลงฐานข้อมูล (โดยใส่ audio_url เป็น NULL)
+      const insertQuery = `
+        INSERT INTO snore_events (user_id, device_id, snore_prob, is_inflated, audio_url, created_at)
+        VALUES ($1, $2, $3, $4, NULL, NOW())
+        RETURNING *
+      `;
+      const values = [userId, deviceId, snoreProb, isInflated];
+      const newLog = await pool.query(insertQuery, values);
+
+      console.log(`✅ [MQTT Snore Logged to DB] Device: ${deviceId}, Prob: ${snoreProb}%`);
+
+      // 3. ส่งสัญญาณ Realtime ไปแจ้งหน้าเว็บให้รีเฟรชประวัติและกราฟทันที
+      io.emit('realtime_snore_event', newLog.rows[0]);
+    }
+
+    // บรอดแคสต์ข้อมูลสดไปยังผู้ใช้งานผ่าน Socket.io ตามปกติ
     io.emit('realtime_sensor_update', {
       device_id: deviceId,
       ...data
     });
+
   } catch (err) {
     console.error('❌ Failed to process MQTT message:', err.message);
   }
 });
-
 // --- 5. Middleware & Authentication APIs ---
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
