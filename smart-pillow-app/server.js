@@ -1,6 +1,6 @@
 const express = require('express');
-const http = require('http'); // 1. เพิ่ม http module
-const { Server } = require('socket.io'); // 2. เพิ่ม socket.io
+const http = require('http');
+const { Server } = require('socket.io');
 const mqtt = require('mqtt');
 const { Pool } = require('pg');
 const cors = require('cors');
@@ -10,9 +10,9 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const server = http.createServer(app); // 3. สร้าง HTTP Server ห่อ Express
+const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: '*' } // อนุญาตการเชื่อมต่อ WebSocket
+  cors: { origin: '*' }
 });
 
 app.use(express.json());
@@ -38,6 +38,7 @@ const pool = new Pool({
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
+// ปรับปรุงการสร้าง DB Table (ตัด sensor_data ออก)
 const initDb = async () => {
   try {
     await pool.query(`
@@ -47,26 +48,17 @@ const initDb = async () => {
         email VARCHAR(100) UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         device_id VARCHAR(50) DEFAULT 'pillow-001',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS sensor_data (
-        id SERIAL PRIMARY KEY,
-        user_id INT REFERENCES users(id) ON DELETE CASCADE,
-        device_id VARCHAR(50),
-        temperature NUMERIC(4, 1),
-        humidity NUMERIC(4, 1),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
 
       CREATE TABLE IF NOT EXISTS snore_events (
         id SERIAL PRIMARY KEY,
         user_id INT REFERENCES users(id) ON DELETE CASCADE,
-        device_id VARCHAR(50),
-        snore_prob NUMERIC(5, 2),
+        device_id VARCHAR(50) DEFAULT 'pillow-001',
+        snore_prob INT NOT NULL CHECK (snore_prob BETWEEN 0 AND 100),
         is_inflated BOOLEAN DEFAULT FALSE,
-        audio_url TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        audio_url TEXT DEFAULT '/uploads/demo.mp3',
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
     `);
     console.log('✅ Database tables initialized successfully');
@@ -82,13 +74,10 @@ const mqttClient = mqtt.connect(mqttBrokerUrl);
 
 mqttClient.on('connect', () => {
   console.log('✅ Connected to HiveMQ MQTT Broker');
-  mqttClient.subscribe('smartpillow/+/sensor');
   mqttClient.subscribe('smartpillow/+/snore');
   mqttClient.subscribe('smartpillow/+/telemetry');
-  mqttClient.subscribe('smartpillow/+/sensors');
 });
 
-// ดักฟังการเชื่อมต่อ Socket.io จากหน้าเว็บ
 io.on('connection', (socket) => {
   console.log('⚡ Web Client Connected to Socket.io:', socket.id);
 });
@@ -98,19 +87,12 @@ mqttClient.on('message', async (topic, message) => {
     const data = JSON.parse(message.toString());
     const deviceId = data.device_id || 'pillow-001';
 
-    // 🚀 ⚡ ยิงข้อมูล Real-time ไปหาหน้าเว็บทันทีผ่าน Socket.io!
+    // ส่งข้อมูลแบบ Real-time ไปหน้าเว็บผ่าน Socket.io
     io.emit('realtime_sensor_update', data);
 
-    // ค้นหา User ID และบันทึกลง Neon DB ตามปกติ
+    // ค้นหา User ID จาก device_id แล้วบันทึกเฉพาะ snore_events ลง Neon DB
     const userRes = await pool.query('SELECT id FROM users WHERE device_id = $1 LIMIT 1', [deviceId]);
     const userId = userRes.rows.length > 0 ? userRes.rows[0].id : (data.user_id || 1);
-
-    if (data.temperature !== undefined && data.humidity !== undefined) {
-      await pool.query(
-        'INSERT INTO sensor_data (user_id, device_id, temperature, humidity) VALUES ($1, $2, $3, $4)',
-        [userId, deviceId, data.temperature, data.humidity]
-      );
-    }
 
     if (data.snore_prob !== undefined) {
       await pool.query(
@@ -123,7 +105,7 @@ mqttClient.on('message', async (topic, message) => {
   }
 });
 
-// Middleware & APIs อื่นๆ คงเดิม
+// Middleware & Auth APIs
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -186,15 +168,14 @@ app.post('/api/user/pair-device', authenticateToken, async (req, res) => {
   }
 });
 
+// API Dashboard Summary (ตัดเซนเซอร์สภาพแวดล้อมออก เหลือเฉพาะข้อมูลสถิติการกรน)
 app.get('/api/dashboard/summary', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const envResult = await pool.query('SELECT temperature, humidity FROM sensor_data WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1', [userId]);
-    const snoreResult = await pool.query('SELECT snore_prob, created_at FROM snore_events WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5', [userId]);
-
-    const hasEnv = envResult.rows.length > 0;
-    const temp = hasEnv ? parseFloat(envResult.rows[0].temperature) : null;
-    const humid = hasEnv ? parseFloat(envResult.rows[0].humidity) : null;
+    const snoreResult = await pool.query(
+      'SELECT snore_prob, created_at FROM snore_events WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5',
+      [userId]
+    );
 
     let sleepScore = null;
     let chartLabels = [];
@@ -207,7 +188,7 @@ app.get('/api/dashboard/summary', authenticateToken, async (req, res) => {
       chartData = snoreRows.map(row => parseFloat(row.snore_prob));
     }
 
-    res.json({ success: true, sleepScore, temp, humid, chartLabels, chartData });
+    res.json({ success: true, sleepScore, chartLabels, chartData });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -218,7 +199,10 @@ app.get('/api/snore-events', authenticateToken, async (req, res) => {
     const { date } = req.query;
     let query = 'SELECT * FROM snore_events WHERE user_id = $1';
     let params = [req.user.id];
-    if (date) { query += ' AND DATE(created_at) = $2'; params.push(date); }
+    if (date) { 
+      query += " AND DATE(created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Bangkok') = $2"; 
+      params.push(date); 
+    }
     query += ' ORDER BY created_at DESC LIMIT 50';
 
     const result = await pool.query(query, params);
@@ -241,7 +225,7 @@ app.post('/api/settings', authenticateToken, async (req, res) => {
   const { auto_mode, device_id } = req.body;
   const targetDeviceId = device_id || req.user.device_id || 'pillow-001';
   mqttClient.publish(`smartpillow/${targetDeviceId}/settings`, JSON.stringify({ auto_mode }), () => {
-    res.json({ success: true, message: `อัปเดต Auto Mode แล้ว` });
+    res.json({ success: true, message: 'อัปเดต Auto Mode แล้ว' });
   });
 });
 
@@ -249,11 +233,10 @@ app.post('/api/control', authenticateToken, async (req, res) => {
   const { zone, action, device_id } = req.body;
   const targetDeviceId = device_id || req.user.device_id || 'pillow-001';
   mqttClient.publish(`smartpillow/${targetDeviceId}/airbag/command`, JSON.stringify({ zone, action }), () => {
-    res.json({ success: true, message: `สั่งงานถุงลมสำเร็จ` });
+    res.json({ success: true, message: 'สั่งงานถุงลมสำเร็จ' });
   });
 });
 
-// เปลี่ยนอ็อบเจกต์การสั่งรันจาก app.listen เป็น server.listen
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Web & Socket Server is running on port ${PORT}`);
