@@ -52,7 +52,7 @@ const pool = new Pool({
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false
 });
 
-// สร้าง Table เริ่มต้น (ใช้ตาราง snore_events เป็นหลัก)
+// สร้าง Table เริ่มต้น
 const initDb = async () => {
   try {
     await pool.query(`
@@ -96,24 +96,17 @@ io.on('connection', (socket) => {
   console.log('⚡ Web Client Connected to Socket.io:', socket.id);
 });
 
+// [ปรับปรุงจุดนี้] ทำหน้าที่ส่งข้อมูล Realtime ไปยัง Dashboard ผ่าน Socket.io เท่านั้น (ไม่บันทึกซ้ำลง DB)
 mqttClient.on('message', async (topic, message) => {
   try {
     const data = JSON.parse(message.toString());
     const deviceId = data.device_id || 'pillow-001';
 
-    // ส่งข้อมูลแบบ Real-time ไปหน้าเว็บผ่าน Socket.io
-    io.emit('realtime_sensor_update', data);
-
-    // ค้นหา User ID จาก device_id แล้วบันทึกลง snore_events
-    const userRes = await pool.query('SELECT id FROM users WHERE device_id = $1 LIMIT 1', [deviceId]);
-    const userId = userRes.rows.length > 0 ? userRes.rows[0].id : (data.user_id || 1);
-
-    if (data.snore_prob !== undefined) {
-      await pool.query(
-        'INSERT INTO snore_events (user_id, device_id, snore_prob, is_inflated, audio_url) VALUES ($1, $2, $3, $4, $5)',
-        [userId, deviceId, data.snore_prob, data.is_inflated || false, data.audio_url || '/uploads/demo.mp3']
-      );
-    }
+    // บรอดแคสต์ข้อมูลสดไปยังผู้ใช้งานผ่าน Socket.io
+    io.emit('realtime_sensor_update', {
+      device_id: deviceId,
+      ...data
+    });
   } catch (err) {
     console.error('❌ Failed to process MQTT message:', err.message);
   }
@@ -243,7 +236,7 @@ app.post('/api/settings', authenticateToken, async (req, res) => {
   });
 });
 
-app.post('/api/control', authenticateToken, async (req, res) => {
+app.post('/api/airbag/command', authenticateToken, async (req, res) => {
   const { zone, action, device_id } = req.body;
   const targetDeviceId = device_id || req.user.device_id || 'pillow-001';
   mqttClient.publish(`smartpillow/${targetDeviceId}/airbag/command`, JSON.stringify({ zone, action }), () => {
@@ -251,7 +244,7 @@ app.post('/api/control', authenticateToken, async (req, res) => {
   });
 });
 
-// --- 7. Endpoint รับอัปโหลดไฟล์เสียง WAV จาก ESP32 ---
+// --- 7. Endpoint รับอัปโหลดไฟล์เสียง WAV จาก ESP32 (บันทึกลง DB ที่เดียวเท่านั้น) ---
 app.post('/api/upload-audio', upload.single('audio'), async (req, res) => {
   try {
     const { device_id, snore_prob, is_inflated } = req.body;
@@ -263,7 +256,7 @@ app.post('/api/upload-audio', upload.single('audio'), async (req, res) => {
 
     const audioUrl = `/uploads/${audioFile.filename}`;
 
-    // 1. ค้นหา user_id จาก device_id ในตาราง users
+    // ค้นหา user_id จาก device_id ในตาราง users
     const userResult = await pool.query(
       'SELECT id FROM users WHERE device_id = $1 LIMIT 1',
       [device_id]
@@ -271,7 +264,7 @@ app.post('/api/upload-audio', upload.single('audio'), async (req, res) => {
 
     let userId = userResult.rows.length > 0 ? userResult.rows[0].id : null;
 
-    // 2. บันทึกข้อมูลการกรน + URL ไฟล์เสียงลงตาราง snore_events ใน Neon DB
+    // บันทึกข้อมูลการกรน + URL ไฟล์เสียงลงตาราง snore_events
     const insertQuery = `
       INSERT INTO snore_events (user_id, device_id, snore_prob, is_inflated, audio_url, created_at)
       VALUES ($1, $2, $3, $4, $5, NOW())
@@ -282,7 +275,7 @@ app.post('/api/upload-audio', upload.single('audio'), async (req, res) => {
 
     console.log(`✅ [Audio Uploaded] Device: ${device_id}, Path: ${audioUrl}`);
     
-    // แจ้งเตือนหน้าเว็บผ่าน Socket.io ทันทีที่มีไฟล์เสียงใหม่ถูกอัปโหลด
+    // แจ้งเตือนหน้าเว็บผ่าน Socket.io เมื่อมีไฟล์เสียงใหม่เข้ามา
     io.emit('realtime_snore_event', newLog.rows[0]);
 
     res.status(200).json({ success: true, log: newLog.rows[0] });

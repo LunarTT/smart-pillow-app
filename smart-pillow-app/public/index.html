@@ -976,7 +976,10 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${userToken}`
                     },
-                    body: JSON.stringify({ action: action })
+                    body: JSON.stringify({ 
+                        action: action, 
+                        device_id: getCurrentDeviceId() // เพิ่มการส่ง device_id ปัจจุบันกำกับไปด้วย
+                    })
                 });
 
                 const data = await response.json();
@@ -1153,17 +1156,40 @@
             }
         }
 
-        // Socket.io Realtime Listener
+        // Socket.io Realtime Listener (Frontend)
         const socket = io();
 
-        socket.on('realtime_sensor_update', (data) => {
+        // ฟังก์ชันกลางสำหรับตรวจสอบ Device ID ก่อนประมวลผล Event
+        function handleRealtimeEvent(data, callback) {
             const currentDevId = getCurrentDeviceId();
-            if (data.device_id && data.device_id !== currentDevId) return;
+            
+            // หากมีข้อมูล device_id ส่งมา แต่มันไม่ตรงกับรหัสหมอนที่ผู้ใช้นี้เชื่อมต่ออยู่ ให้ละเว้น
+            if (data && data.device_id && data.device_id !== currentDevId) {
+                return;
+            }
 
-            if (data.snore_prob !== undefined) {
+            if (typeof callback === 'function') {
+                callback(data);
+            }
+        }
+
+        // Event 1: ดักฟังค่าสถานะเซนเซอร์แบบ Realtime (เช่น ค่าความน่าจะเป็นเบื้องต้น)
+        socket.on('realtime_sensor_update', (data) => {
+            handleRealtimeEvent(data, (payload) => {
+                if (payload.snore_prob !== undefined) {
+                    fetchDashboardSummary();
+                    fetchSnoreEvents();
+                }
+            });
+        });
+
+        // Event 2: ดักฟังเมื่อ ESP32 ประมวลผลและอัปโหลดไฟล์เสียงกรนสำเร็จ
+        socket.on('realtime_snore_event', (data) => {
+            handleRealtimeEvent(data, () => {
+                // อัปเดตข้อมูลการ์ดสรุปผล และรีเฟรชรายการไฟล์เสียงกรนใหม่ทันที
                 fetchDashboardSummary();
                 fetchSnoreEvents();
-            }
+            });
         });
     </script>
 </body>
